@@ -67,7 +67,11 @@ class SimpleTrainer:
         progress_bar = tqdm(self.dataloader, desc=f'Epoch {self.epoch + 1}')
 
         for batch_idx, batch in enumerate(progress_bar):
-            spectrograms = batch['spectrograms'].to(self.device)
+            # 兼容新旧接口
+            if 'features' in batch:
+                spectrograms = batch['features'].to(self.device)
+            else:
+                spectrograms = batch['spectrograms'].to(self.device)
             labels = batch['labels'].to(self.device)
 
             # 准备输入和目标
