@@ -151,8 +151,12 @@ def collate_fn(batch):
         'filenames': filenames
     }
 
-def create_sample_data():
-    """创建示例数据文件"""
+def create_labels_file_if_not_exists(labels_file='data/labels.csv'):
+    """如果标签文件不存在，创建示例标签文件"""
+    if os.path.exists(labels_file):
+        print(f"标签文件已存在: {labels_file}")
+        return
+    
     # 创建示例标签文件
     labels_data = {
         'filename': [
@@ -163,55 +167,39 @@ def create_sample_data():
     }
     
     df = pd.DataFrame(labels_data)
-    df.to_csv('data/labels.csv', index=False, encoding='utf-8')
-    print("已创建示例标签文件: data/labels.csv")
+    df.to_csv(labels_file, index=False, encoding='utf-8')
+    print(f"已创建示例标签文件: {labels_file}")
+    print("请根据你的实际音频文件修改标签文件中的filename字段")
+
+def check_audio_files(audio_dir, labels_file):
+    """检查音频文件是否存在"""
+    if not os.path.exists(labels_file):
+        print(f"错误: 标签文件不存在 {labels_file}")
+        return False
     
-    # 创建示例音频文件（使用合成音频）
-    print("正在创建示例音频文件...")
+    df = pd.read_csv(labels_file)
+    missing_files = []
+    existing_files = []
     
-    for i, (filename, label) in enumerate(zip(labels_data['filename'], labels_data['label'])):
-        # 生成简单的合成音频（不同频率对应不同数字）
-        duration = 1.0  # 1秒
-        sample_rate = 48000
-        
-        # 为每个数字分配不同的基础频率
-        base_freq = 200 + i * 50  # 200Hz到 650Hz
-        
-        t = np.linspace(0, duration, int(sample_rate * duration))
-        
-        # 生成包含多个谐波的音频信号
-        audio = np.zeros_like(t)
-        for harmonic in range(1, 4):  # 3个谐波
-            freq = base_freq * harmonic
-            amplitude = 1.0 / harmonic  # 谐波幅度递减
-            audio += amplitude * np.sin(2 * np.pi * freq * t)
-        
-        # 添加一些噪声使其更真实
-        noise = np.random.normal(0, 0.05, len(audio))
-        audio += noise
-        
-        # 归一化
-        audio = audio / np.max(np.abs(audio)) * 0.8
-        
-        # 保存音频文件
-        audio_path = f'data/audio/{filename}'
-        
-        # 使用librosa保存（需要soundfile库）
-        try:
-            import soundfile as sf
-            sf.write(audio_path, audio, sample_rate)
-        except ImportError:
-            # 如果没有soundfile，使用scipy
-            try:
-                from scipy.io import wavfile
-                # 转换为16位整数
-                audio_int = (audio * 32767).astype(np.int16)
-                wavfile.write(audio_path, sample_rate, audio_int)
-            except ImportError:
-                print(f"无法保存音频文件 {audio_path}，请安装soundfile或scipy")
-                continue
-        
-        print(f"已创建: {audio_path} (标签: {label})")
+    for _, row in df.iterrows():
+        audio_path = os.path.join(audio_dir, row['filename'])
+        if os.path.exists(audio_path):
+            existing_files.append(row['filename'])
+        else:
+            missing_files.append(row['filename'])
+    
+    print(f"音频文件检查结果:")
+    print(f"  找到的文件: {len(existing_files)}")
+    print(f"  缺失的文件: {len(missing_files)}")
+    
+    if existing_files:
+        print(f"  存在的文件: {existing_files[:5]}{'...' if len(existing_files) > 5 else ''}")
+    
+    if missing_files:
+        print(f"  缺失的文件: {missing_files}")
+        print("请确保音频文件存在于指定目录中")
+    
+    return len(missing_files) == 0
 
 def get_dataloader(audio_dir='data/audio', labels_file='data/labels.csv', 
                   batch_size=4, shuffle=True, num_workers=0):
@@ -229,23 +217,32 @@ def get_dataloader(audio_dir='data/audio', labels_file='data/labels.csv',
     return dataloader
 
 if __name__ == "__main__":
-    # 创建示例数据
-    create_sample_data()
+    # 检查并创建标签文件
+    create_labels_file_if_not_exists()
     
-    # 测试数据加载
-    try:
-        dataloader = get_dataloader(batch_size=2)
+    # 检查音频文件
+    audio_dir = 'data/audio'
+    labels_file = 'data/labels.csv'
+    
+    if check_audio_files(audio_dir, labels_file):
+        print("所有音频文件都存在，可以开始训练")
         
-        print(f"数据集大小: {len(dataloader.dataset)}")
-        
-        # 获取一个批次
-        for batch in dataloader:
-            print(f"频谱形状: {batch['spectrograms'].shape}")
-            print(f"标签形状: {batch['labels'].shape}")
-            print(f"文本: {batch['texts']}")
-            print(f"文件名: {batch['filenames']}")
-            break
+        # 测试数据加载
+        try:
+            dataloader = get_dataloader(batch_size=2)
             
-    except Exception as e:
-        print(f"测试数据加载时出错: {e}")
-        print("请确保安装了librosa和相关依赖")
+            print(f"数据集大小: {len(dataloader.dataset)}")
+            
+            # 获取一个批次
+            for batch in dataloader:
+                print(f"频谱形状: {batch['spectrograms'].shape}")
+                print(f"标签形状: {batch['labels'].shape}")
+                print(f"文本: {batch['texts']}")
+                print(f"文件名: {batch['filenames']}")
+                break
+                
+        except Exception as e:
+            print(f"测试数据加载时出错: {e}")
+            print("请确保安装了librosa和相关依赖")
+    else:
+        print("部分音频文件缺失，请检查文件路径")

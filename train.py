@@ -16,7 +16,7 @@ import json
 from datetime import datetime
 
 from model import create_model
-from data_utils import get_dataloader, create_sample_data
+from data_utils import get_dataloader, create_labels_file_if_not_exists, check_audio_files
 from vocab import vocab
 
 class Trainer:
@@ -272,10 +272,18 @@ def main():
             json.dump(config, f, indent=2, ensure_ascii=False)
         print(f"已创建默认配置文件: {args.config}")
     
-    # 创建示例数据
+    # 检查和创建标签文件
     if args.create_data or not os.path.exists(config['labels_file']):
-        print("创建示例数据...")
-        create_sample_data()
+        print("检查标签文件...")
+        create_labels_file_if_not_exists(config['labels_file'])
+    
+    # 检查音频文件
+    print("检查音频文件...")
+    if not check_audio_files(config['audio_dir'], config['labels_file']):
+        print("错误: 部分音频文件缺失，请检查音频文件路径")
+        print(f"音频目录: {config['audio_dir']}")
+        print(f"标签文件: {config['labels_file']}")
+        return
     
     # 设备
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

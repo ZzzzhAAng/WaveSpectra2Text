@@ -9,12 +9,13 @@
 ├── vocab.py           # 词汇表管理
 ├── model.py           # 神经网络模型（Encoder-Decoder架构）
 ├── data_utils.py      # 数据处理工具
+├── setup_data.py      # 数据设置工具
 ├── train.py           # 训练脚本
 ├── inference.py       # 推理脚本
 ├── requirements.txt   # 依赖包
 ├── config.json        # 配置文件
 ├── data/
-│   ├── audio/         # 音频文件目录
+│   ├── audio/         # 音频文件目录（放置你的48kHz音频文件）
 │   └── labels.csv     # 标签文件
 ├── checkpoints/       # 模型检查点
 └── runs/             # TensorBoard日志
@@ -28,13 +29,19 @@ pip install -r requirements.txt
 
 ## 数据准备
 
-### 自动创建示例数据
+### 使用现有音频文件
 
-运行训练脚本时会自动创建示例数据：
+1. 将你的48kHz音频文件放在 `data/audio/` 目录下
+2. 运行数据设置工具：
 
 ```bash
-python train.py --create_data
+python3 setup_data.py
 ```
+
+这个工具会：
+- 扫描 `data/audio/` 目录中的音频文件
+- 自动创建标签模板文件 `data/labels.csv`
+- 验证音频文件和标签的匹配
 
 ### 手动准备数据
 
@@ -48,6 +55,8 @@ filename,label
 3.wav,三
 ...
 ```
+
+支持的音频格式：`.wav`, `.mp3`, `.flac`, `.m4a`, `.aac`
 
 ## 模型架构
 
