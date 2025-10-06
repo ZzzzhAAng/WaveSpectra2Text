@@ -83,6 +83,10 @@ class AudioDataset(Dataset):
         index_file = os.path.join(self.precomputed_dir, 'spectrum_index.csv')
         if os.path.exists(index_file):
             self.precomputed_index = pd.read_csv(index_file)
+            
+            # 为了避免列名冲突，先重命名索引文件中的label列
+            self.precomputed_index = self.precomputed_index.rename(columns={'label': 'index_label'})
+            
             # 合并标签和预计算索引
             self.labels_df = self.labels_df.merge(
                 self.precomputed_index, 
@@ -90,6 +94,16 @@ class AudioDataset(Dataset):
                 right_on='original_audio',
                 how='inner'
             )
+            
+            # 验证标签一致性
+            if 'index_label' in self.labels_df.columns:
+                # 检查标签是否一致
+                inconsistent = self.labels_df[self.labels_df['label'] != self.labels_df['index_label']]
+                if len(inconsistent) > 0:
+                    print(f"警告: {len(inconsistent)} 个文件的标签不一致")
+                
+                # 删除重复的标签列
+                self.labels_df = self.labels_df.drop(columns=['index_label'])
         else:
             raise FileNotFoundError(f"预计算索引文件不存在: {index_file}")
     

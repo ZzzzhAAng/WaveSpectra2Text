@@ -1,0 +1,14 @@
+{
+  "preprocessor_type": "SpectrogramPreprocessor",
+  "config": {
+    "sample_rate": 48000,
+    "n_fft": 1024,
+    "hop_length": 512,
+    "max_length": 200,
+    "freq_bins": 513
+  },
+  "feature_shape": [
+    200,
+    513
+  ]
+}

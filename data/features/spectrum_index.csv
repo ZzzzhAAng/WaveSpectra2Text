@@ -1,0 +1,11 @@
+spectrum_file,original_audio,label,shape,feature_path
+Chinese_Number_01.npy,Chinese_Number_01.wav,一,"(200, 513)",data/features/Chinese_Number_01.npy
+Chinese_Number_02.npy,Chinese_Number_02.wav,二,"(200, 513)",data/features/Chinese_Number_02.npy
+Chinese_Number_03.npy,Chinese_Number_03.wav,三,"(200, 513)",data/features/Chinese_Number_03.npy
+Chinese_Number_04.npy,Chinese_Number_04.wav,四,"(200, 513)",data/features/Chinese_Number_04.npy
+Chinese_Number_05.npy,Chinese_Number_05.wav,五,"(200, 513)",data/features/Chinese_Number_05.npy
+Chinese_Number_06.npy,Chinese_Number_06.wav,六,"(200, 513)",data/features/Chinese_Number_06.npy
+Chinese_Number_07.npy,Chinese_Number_07.wav,七,"(200, 513)",data/features/Chinese_Number_07.npy
+Chinese_Number_08.npy,Chinese_Number_08.wav,八,"(200, 513)",data/features/Chinese_Number_08.npy
+Chinese_Number_09.npy,Chinese_Number_09.wav,九,"(200, 513)",data/features/Chinese_Number_09.npy
+Chinese_Number_10.npy,Chinese_Number_10.wav,十,"(200, 513)",data/features/Chinese_Number_10.npy

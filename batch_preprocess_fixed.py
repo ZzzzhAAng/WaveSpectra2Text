@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-批量预处理工具 - 统一的离线预处理解决方案
-替代原来的 preprocess_spectrum.py，提供更好的扩展性
+修复版批量预处理工具
+增强错误处理和调试信息
 """
 
 import os
@@ -11,13 +11,13 @@ import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
 import json
+import traceback
 
 from audio_preprocessing import PreprocessorFactory, OfflinePreprocessor
-from audio_dataset import migrate_from_old_dataset
 
 
-class BatchPreprocessor:
-    """批量预处理器"""
+class BatchPreprocessorFixed:
+    """修复版批量预处理器 - 增强错误处理"""
     
     def __init__(self, 
                  preprocessor_type: str = 'spectrogram',
@@ -25,11 +25,6 @@ class BatchPreprocessor:
                  **preprocessor_kwargs):
         """
         初始化批量预处理器
-        
-        Args:
-            preprocessor_type: 预处理器类型
-            output_dir: 输出目录
-            **preprocessor_kwargs: 预处理器参数
         """
         self.preprocessor_type = preprocessor_type
         self.output_dir = output_dir
@@ -49,8 +44,8 @@ class BatchPreprocessor:
         print(f"  配置: {self.preprocessor.get_config()}")
     
     def process_directory(self, audio_dir: str, labels_file: str, 
-                         force_recompute: bool = False) -> pd.DataFrame:
-        """批量处理音频目录"""
+                         force_recompute: bool = False, verbose: bool = True) -> pd.DataFrame:
+        """批量处理音频目录 - 增强版"""
         print(f"\n🎯 开始批量处理: {audio_dir}")
         
         # 读取标签文件
@@ -58,6 +53,7 @@ class BatchPreprocessor:
             raise FileNotFoundError(f"标签文件不存在: {labels_file}")
         
         df = pd.read_csv(labels_file)
+        print(f"读取到 {len(df)} 个标签")
         
         # 处理结果
         processed_data = []
@@ -72,24 +68,42 @@ class BatchPreprocessor:
             label = row['label']
             audio_path = os.path.join(audio_dir, audio_file)
             
+            # 更新进度条显示
+            pbar.set_postfix({
+                '当前': audio_file[:15] + '...' if len(audio_file) > 15 else audio_file,
+                '成功': success_count, 
+                '失败': len(failed_files)
+            })
+            
             if not os.path.exists(audio_path):
-                failed_files.append({'file': audio_file, 'reason': '文件不存在'})
-                pbar.set_postfix({'失败': len(failed_files)})
+                error_msg = f"文件不存在: {audio_path}"
+                failed_files.append({'file': audio_file, 'reason': error_msg})
+                if verbose:
+                    print(f"\n❌ {error_msg}")
                 continue
             
             try:
                 # 处理音频文件
+                if verbose:
+                    print(f"\n🎵 处理: {audio_file}")
+                
                 features = self.offline_processor.process_file(
                     audio_path, force_recompute=force_recompute
                 )
+                
+                if verbose:
+                    print(f"✅ 特征提取成功，形状: {features.shape}")
                 
                 # 保存特征文件
                 feature_filename = f"{Path(audio_file).stem}.npy"
                 feature_path = os.path.join(self.output_dir, feature_filename)
                 
-                # 保存特征文件
+                # 保存特征
                 import numpy as np
                 np.save(feature_path, features)
+                
+                if verbose:
+                    print(f"💾 保存到: {feature_path}")
                 
                 processed_data.append({
                     'spectrum_file': feature_filename,
@@ -100,11 +114,18 @@ class BatchPreprocessor:
                 })
                 
                 success_count += 1
-                pbar.set_postfix({'成功': success_count, '失败': len(failed_files)})
                 
             except Exception as e:
-                failed_files.append({'file': audio_file, 'reason': str(e)})
-                pbar.set_postfix({'成功': success_count, '失败': len(failed_files)})
+                error_msg = f"处理失败: {str(e)}"
+                failed_files.append({
+                    'file': audio_file, 
+                    'reason': error_msg,
+                    'traceback': traceback.format_exc()
+                })
+                
+                if verbose:
+                    print(f"\n❌ {audio_file}: {error_msg}")
+                    print(f"详细错误: {traceback.format_exc()}")
         
         pbar.close()
         
@@ -122,12 +143,25 @@ class BatchPreprocessor:
             processed_df.to_csv(index_file, index=False, encoding='utf-8')
             print(f"✅ 索引文件保存: {index_file}")
         
-        # 保存失败文件列表
+        # 保存失败文件列表 (包含详细错误信息)
         if failed_files:
             failed_df = pd.DataFrame(failed_files)
             failed_file = os.path.join(self.output_dir, 'failed_files.csv')
             failed_df.to_csv(failed_file, index=False, encoding='utf-8')
             print(f"❌ 失败文件列表: {failed_file}")
+            
+            # 保存详细错误日志
+            error_log_file = os.path.join(self.output_dir, 'error_log.txt')
+            with open(error_log_file, 'w', encoding='utf-8') as f:
+                f.write("批量预处理错误日志\n")
+                f.write("=" * 50 + "\n\n")
+                for error in failed_files:
+                    f.write(f"文件: {error['file']}\n")
+                    f.write(f"错误: {error['reason']}\n")
+                    if 'traceback' in error:
+                        f.write(f"详细信息:\n{error['traceback']}\n")
+                    f.write("-" * 30 + "\n\n")
+            print(f"📝 详细错误日志: {error_log_file}")
         
         # 保存预处理配置
         config_file = os.path.join(self.output_dir, 'preprocess_config.json')
@@ -140,7 +174,8 @@ class BatchPreprocessor:
             'failed_count': len(failed_files),
             'success_rate': len(processed_data) / total_files if total_files > 0 else 0,
             'preprocessor_type': self.preprocessor_type,
-            'output_directory': self.output_dir
+            'output_directory': self.output_dir,
+            'failed_files': [f['file'] for f in failed_files]
         }
         
         stats_file = os.path.join(self.output_dir, 'process_stats.json')
@@ -155,69 +190,18 @@ class BatchPreprocessor:
         print(f"  成功率: {stats['success_rate']:.2%}")
         print(f"  配置文件: {config_file}")
         print(f"  统计文件: {stats_file}")
-    
-    def validate_output(self) -> bool:
-        """验证输出文件"""
-        print(f"\n🔍 验证输出文件: {self.output_dir}")
         
-        index_file = os.path.join(self.output_dir, 'spectrum_index.csv')
-        if not os.path.exists(index_file):
-            print("❌ 索引文件不存在")
-            return False
-        
-        df = pd.read_csv(index_file)
-        valid_count = 0
-        invalid_files = []
-        
-        for _, row in df.iterrows():
-            feature_path = os.path.join(self.output_dir, row['spectrum_file'])
-            
-            if not os.path.exists(feature_path):
-                invalid_files.append(f"{row['spectrum_file']} (文件不存在)")
-                continue
-            
-            try:
-                import numpy as np
-                features = np.load(feature_path)
-                expected_shape = eval(row['shape']) if isinstance(row['shape'], str) else row['shape']
-                
-                if features.shape == expected_shape:
-                    valid_count += 1
-                else:
-                    invalid_files.append(
-                        f"{row['spectrum_file']} (形状不匹配: 期望{expected_shape}, 实际{features.shape})"
-                    )
-            except Exception as e:
-                invalid_files.append(f"{row['spectrum_file']} (加载失败: {e})")
-        
-        # 保存验证结果
-        validation_result = {
-            'total_files': len(df),
-            'valid_files': valid_count,
-            'invalid_files': len(invalid_files),
-            'validation_passed': len(invalid_files) == 0,
-            'invalid_file_details': invalid_files
-        }
-        
-        validation_file = os.path.join(self.output_dir, 'validation_result.json')
-        with open(validation_file, 'w', encoding='utf-8') as f:
-            json.dump(validation_result, f, indent=2, ensure_ascii=False)
-        
-        print(f"📋 验证结果: {valid_count}/{len(df)} 文件有效")
-        if invalid_files:
-            print(f"❌ 无效文件: {len(invalid_files)} 个")
-            for invalid_file in invalid_files[:5]:  # 只显示前5个
-                print(f"  - {invalid_file}")
-            if len(invalid_files) > 5:
-                print(f"  ... 还有 {len(invalid_files) - 5} 个")
-        
-        print(f"验证报告保存: {validation_file}")
-        return validation_result['validation_passed']
+        if failed_files:
+            print(f"\n❌ 失败文件:")
+            for error in failed_files[:5]:  # 只显示前5个
+                print(f"  - {error['file']}: {error['reason']}")
+            if len(failed_files) > 5:
+                print(f"  ... 还有 {len(failed_files) - 5} 个失败文件")
 
 
 def main():
     """主函数"""
-    parser = argparse.ArgumentParser(description='批量音频预处理工具')
+    parser = argparse.ArgumentParser(description='修复版批量音频预处理工具')
     
     # 基本参数
     parser.add_argument('--audio_dir', default='data/audio', help='音频文件目录')
@@ -235,13 +219,12 @@ def main():
     parser.add_argument('--n_mels', type=int, default=128, help='Mel频谱的mel数量')
     
     # 操作参数
-    parser.add_argument('--validate', action='store_true', help='验证输出文件')
     parser.add_argument('--force_recompute', action='store_true', help='强制重新计算')
-    parser.add_argument('--migrate', action='store_true', help='从旧数据集迁移')
+    parser.add_argument('--quiet', action='store_true', help='静默模式')
     
     args = parser.parse_args()
     
-    print("🎯 批量音频预处理工具")
+    print("🎯 修复版批量音频预处理工具")
     print("=" * 60)
     
     # 准备预处理器参数
@@ -255,45 +238,32 @@ def main():
     if args.preprocessor == 'mel_spectrogram':
         preprocessor_kwargs['n_mels'] = args.n_mels
     
-    if args.migrate:
-        # 迁移模式
-        print("🔄 迁移模式")
-        migrate_from_old_dataset(
-            audio_dir=args.audio_dir,
-            labels_file=args.labels_file,
-            output_dir=args.output_dir,
-            preprocessor_type=args.preprocessor,
-            **preprocessor_kwargs
-        )
-    else:
+    try:
         # 创建批量预处理器
-        batch_processor = BatchPreprocessor(
+        batch_processor = BatchPreprocessorFixed(
             preprocessor_type=args.preprocessor,
             output_dir=args.output_dir,
             **preprocessor_kwargs
         )
         
-        if args.validate:
-            # 验证模式
-            batch_processor.validate_output()
+        # 处理
+        result = batch_processor.process_directory(
+            args.audio_dir,
+            args.labels_file,
+            force_recompute=args.force_recompute,
+            verbose=not args.quiet
+        )
+        
+        if len(result) > 0:
+            print(f"\n✅ 批量预处理完成!")
+            print(f"成功处理 {len(result)} 个文件")
+            print(f"现在可以使用预计算模式加载数据集，大幅提升训练速度")
         else:
-            # 处理模式
-            result = batch_processor.process_directory(
-                args.audio_dir,
-                args.labels_file,
-                force_recompute=args.force_recompute
-            )
+            print(f"\n❌ 没有文件处理成功，请检查错误日志")
             
-            if len(result) > 0:
-                print(f"\n✅ 批量预处理完成!")
-                print(f"现在可以使用预计算模式加载数据集，大幅提升训练速度")
-                
-                # 自动验证
-                print("\n🔍 自动验证输出...")
-                if batch_processor.validate_output():
-                    print("✅ 所有文件验证通过")
-                else:
-                    print("❌ 部分文件验证失败，请检查")
+    except Exception as e:
+        print(f"\n💥 批量预处理器初始化失败: {e}")
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

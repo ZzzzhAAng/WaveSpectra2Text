@@ -1,0 +1,9 @@
+{
+  "total_files": 10,
+  "success_count": 10,
+  "failed_count": 0,
+  "success_rate": 1.0,
+  "preprocessor_type": "spectrogram",
+  "output_directory": "data/features",
+  "failed_files": []
+}
