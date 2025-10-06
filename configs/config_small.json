@@ -1,0 +1,15 @@
+{
+  "experiment_name": "speech_recognition_small",
+  "batch_size": 2,
+  "learning_rate": 5e-05,
+  "weight_decay": 1e-06,
+  "grad_clip": 1.0,
+  "num_epochs": 200,
+  "save_every": 25,
+  "hidden_dim": 64,
+  "encoder_layers": 2,
+  "decoder_layers": 2,
+  "dropout": 0.2,
+  "audio_dir": "data/audio",
+  "labels_file": "data/labels.csv"
+}
