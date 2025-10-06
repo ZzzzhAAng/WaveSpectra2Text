@@ -39,8 +39,7 @@ class Trainer:
             self.optimizer, 
             mode='min', 
             factor=0.5, 
-            patience=5,
-            verbose=True
+            patience=5
         )
         
         # 损失函数
@@ -208,14 +207,20 @@ class Trainer:
             val_loss, val_acc = self.validate()
             
             # 学习率调度
+            old_lr = self.optimizer.param_groups[0]['lr']
             self.scheduler.step(val_loss)
+            new_lr = self.optimizer.param_groups[0]['lr']
             
             # 打印结果
             print(f"Epoch {epoch+1}/{num_epochs}:")
             print(f"  Train Loss: {train_loss:.4f}")
             print(f"  Val Loss: {val_loss:.4f}")
             print(f"  Val Acc: {val_acc:.4f}")
-            print(f"  LR: {self.optimizer.param_groups[0]['lr']:.6f}")
+            print(f"  LR: {new_lr:.6f}")
+            
+            # 如果学习率发生变化，输出提示
+            if new_lr != old_lr:
+                print(f"  -> 学习率从 {old_lr:.6f} 降低到 {new_lr:.6f}")
             
             # 保存最佳模型
             if val_loss < self.best_val_loss:
