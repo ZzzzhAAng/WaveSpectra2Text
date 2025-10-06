@@ -230,20 +230,45 @@ def split_dataset(audio_dir, labels_file, test_size=0.2, random_state=42):
     
     df = pd.read_csv(labels_file)
     
+    # 检查数据集大小
     if len(df) < 5:
         print("⚠️  数据集太小，无法分割，使用全部数据进行训练和验证")
         return df, df
     
-    train_df, val_df = train_test_split(
-        df, 
-        test_size=test_size, 
-        random_state=random_state,
-        stratify=df['label'] if len(df['label'].unique()) > 1 else None
-    )
+    # 检查每个标签的样本数
+    label_counts = df['label'].value_counts()
+    min_samples = label_counts.min()
+    
+    print(f"标签分布: {dict(label_counts)}")
+    
+    if min_samples < 2:
+        print("⚠️  部分标签只有1个样本，无法进行分层分割")
+        print("使用随机分割代替分层分割")
+        
+        # 使用简单的随机分割
+        train_df, val_df = train_test_split(
+            df, 
+            test_size=test_size, 
+            random_state=random_state,
+            shuffle=True
+        )
+    else:
+        # 可以进行分层分割
+        print("使用分层分割保持标签分布")
+        train_df, val_df = train_test_split(
+            df, 
+            test_size=test_size, 
+            random_state=random_state,
+            stratify=df['label']
+        )
     
     print(f"数据分割结果:")
     print(f"  训练集: {len(train_df)} 样本")
     print(f"  验证集: {len(val_df)} 样本")
+    
+    # 显示分割后的标签分布
+    print(f"  训练集标签: {dict(train_df['label'].value_counts())}")
+    print(f"  验证集标签: {dict(val_df['label'].value_counts())}")
     
     return train_df, val_df
 
