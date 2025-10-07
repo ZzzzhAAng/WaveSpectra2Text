@@ -59,19 +59,18 @@ class FinalSpeechRecognizer:
         return model
 
     def _extract_spectrogram(self, audio_path):
-        """从音频文件提取频谱特征"""
-        audio, sr = librosa.load(audio_path, sr=self.sample_rate)
-        stft = librosa.stft(audio, n_fft=self.n_fft, hop_length=self.hop_length)
-        magnitude = np.abs(stft)
-        log_magnitude = np.log1p(magnitude)
-        spectrogram = log_magnitude.T
+        """从音频文件提取频谱特征 - 使用统一工具"""
+        from common_utils import AudioProcessor
 
-        if len(spectrogram) > self.max_length:
-            spectrogram = spectrogram[:self.max_length]
-        else:
-            pad_length = self.max_length - len(spectrogram)
-            spectrogram = np.pad(spectrogram, ((0, pad_length), (0, 0)), mode='constant')
+        # 使用统一的音频处理器
+        processor = AudioProcessor(
+            sample_rate=self.sample_rate,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            max_length=self.max_length
+        )
 
+        spectrogram = processor.extract_spectrogram(audio_path)
         return torch.FloatTensor(spectrogram).unsqueeze(0)
 
     def _greedy_decode(self, encoder_output, max_length=10):

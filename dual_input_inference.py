@@ -373,22 +373,12 @@ import librosa
 import numpy as np
 
 def external_audio_preprocessing(audio_path):
-    """外部系统的音频预处理"""
-    # 使用与训练时相同的参数
-    audio, sr = librosa.load(audio_path, sr=48000)
-    stft = librosa.stft(audio, n_fft=1024, hop_length=512)
-    magnitude = np.abs(stft)
-    log_magnitude = np.log1p(magnitude)
-    spectrogram = log_magnitude.T
-
-    # 标准化长度
-    if len(spectrogram) > 200:
-        spectrogram = spectrogram[:200]
-    else:
-        pad_length = 200 - len(spectrogram)
-        spectrogram = np.pad(spectrogram, ((0, pad_length), (0, 0)))
-
-    return spectrogram.astype(np.float32)
+    """外部系统的音频预处理 - 使用统一工具"""
+    from common_utils import AudioProcessor
+    
+    # 使用统一的音频处理器
+    processor = AudioProcessor(sample_rate=48000, n_fft=1024, hop_length=512, max_length=200)
+    return processor.extract_spectrogram(audio_path)
 
 # 外部系统处理音频
 audio_file = "external_audio.wav"

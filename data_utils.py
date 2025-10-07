@@ -103,28 +103,37 @@ def collate_fn(batch):
 
 
 def create_labels_file_if_not_exists(labels_file='data/labels.csv'):
-    """如果标签文件不存在，创建示例标签文件"""
+    """如果标签文件不存在，创建示例标签文件 - 使用统一工具"""
+    from common_utils import LabelManager
+
     if os.path.exists(labels_file):
         print(f"标签文件已存在: {labels_file}")
         return
 
-    # 创建示例标签文件
-    labels_data = {
-        'filename': [
-            '1.wav', '2.wav', '3.wav', '4.wav', '5.wav',
-            '6.wav', '7.wav', '8.wav', '9.wav', '10.wav'
-        ],
-        'label': ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
-    }
+    # 使用统一工具创建标签模板
+    success = LabelManager.create_labels_template('data/audio', labels_file, auto_labels=True)
 
-    df = pd.DataFrame(labels_data)
-    df.to_csv(labels_file, index=False, encoding='utf-8')
-    print(f"已创建示例标签文件: {labels_file}")
-    print("请根据你的实际音频文件修改标签文件中的filename字段")
+    if not success:
+        # 如果没有音频文件，创建示例标签文件
+        labels_data = {
+            'filename': [
+                '1.wav', '2.wav', '3.wav', '4.wav', '5.wav',
+                '6.wav', '7.wav', '8.wav', '9.wav', '10.wav'
+            ],
+            'label': ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+        }
+
+        df = pd.DataFrame(labels_data)
+        df.to_csv(labels_file, index=False, encoding='utf-8')
+        print(f"已创建示例标签文件: {labels_file}")
+        print("请根据你的实际音频文件修改标签文件中的filename字段")
 
 
 def check_audio_files(audio_dir, labels_file):
-    """检查音频文件是否存在"""
+    """检查音频文件是否存在 - 使用统一工具"""
+    from common_utils import LabelManager
+
+    # 使用统一工具进行验证，但保持原有的输出格式
     if not os.path.exists(labels_file):
         print(f"错误: 标签文件不存在 {labels_file}")
         return False
@@ -219,7 +228,7 @@ def get_dataloader(audio_dir='data/audio', labels_file='data/labels.csv',
 
 # 新增便捷函数
 def get_realtime_dataloader(audio_dir='data/audio', labels_file='data/labels.csv',
-                           batch_size=4, shuffle=True, num_workers=0, **kwargs):
+                            batch_size=4, shuffle=True, num_workers=0, **kwargs):
     """获取实时计算数据加载器"""
     return get_dataloader(
         audio_dir=audio_dir,
@@ -233,7 +242,7 @@ def get_realtime_dataloader(audio_dir='data/audio', labels_file='data/labels.csv
 
 
 def get_precomputed_dataloader(labels_file='data/labels.csv', precomputed_dir='data/features',
-                              batch_size=4, shuffle=True, num_workers=0):
+                               batch_size=4, shuffle=True, num_workers=0):
     """获取预计算数据加载器"""
     return get_dataloader(
         labels_file=labels_file,
@@ -294,6 +303,7 @@ if __name__ == "__main__":
             print(f"❌ 测试数据加载时出错: {e}")
             print("请确保安装了librosa和相关依赖")
             import traceback
+
             traceback.print_exc()
     else:
         print("⚠️  部分音频文件缺失，请检查文件路径")
