@@ -17,6 +17,7 @@ import json
 from model import create_model
 from vocab import vocab
 from audio_preprocess import SpectrogramPreprocessor
+from inference_core import InferenceCore, BatchInference
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -33,49 +34,27 @@ class DualInputSpeechRecognizer:
             model_path: 训练好的模型路径
             device: 计算设备
         """
-        self.device = torch.device(device)
         print(f"🚀 初始化双输入语音识别器")
-        print(f"设备: {self.device}")
+        print(f"设备: {device}")
 
-        # 加载训练好的模型
-        self.model = self._load_trained_model(model_path)
+        # 使用统一推理核心
+        self.inference_core = InferenceCore(model_path, device)
+        self.batch_inference = BatchInference(self.inference_core)
 
-        # 初始化音频预处理器 (仅用于音频输入模式)
-        self.preprocessor = SpectrogramPreprocessor(
-            sample_rate=48000,
-            n_fft=1024,
-            hop_length=512,
-            max_length=200
-        )
+        # 保持兼容性
+        self.device = self.inference_core.device
+        self.model = self.inference_core.model
 
         print(f"✅ 支持两种输入模式:")
         print(f"  1. 原始音频文件 (.wav, .mp3, .flac等)")
         print(f"  2. 预处理频谱特征 (.npy文件)")
 
-    def _load_trained_model(self, model_path):
-        """加载训练好的模型"""
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"模型文件不存在: {model_path}")
+        # 显示模型信息
+        model_info = self.inference_core.get_model_info()
+        print(f"📂 模型加载成功: {model_info['path']}")
+        print(f"📊 模型参数: {sum(p.numel() for p in self.model.parameters())}")
 
-        checkpoint = torch.load(model_path, map_location=self.device)
-        config = checkpoint.get('config', {})
-
-        model = create_model(
-            vocab_size=vocab.vocab_size,
-            hidden_dim=config.get('hidden_dim', 256),
-            encoder_layers=config.get('encoder_layers', 4),
-            decoder_layers=config.get('decoder_layers', 4),
-            dropout=config.get('dropout', 0.1)
-        )
-
-        model.load_state_dict(checkpoint['model_state_dict'])
-        model.to(self.device)
-        model.eval()
-
-        print(f"📂 模型加载成功: {model_path}")
-        print(f"📊 模型参数: {sum(p.numel() for p in model.parameters())}")
-
-        return model
+    # 移除重复的模型加载方法，使用统一推理核心
 
     def recognize_from_audio(self, audio_path, show_details=True):
         """
@@ -87,42 +66,31 @@ class DualInputSpeechRecognizer:
             print(f"文件: {audio_path}")
             print("-" * 50)
 
-        try:
-            start_time = time.time()
+        # 使用统一推理核心
+        result = self.inference_core.infer_from_audio(audio_path, method='auto')
 
-            # 验证音频文件
-            if not os.path.exists(audio_path):
-                raise FileNotFoundError(f"音频文件不存在: {audio_path}")
+        if show_details and result['success']:
+            print("🔧 步骤1: 音频预处理")
+            print(f"  ✅ 频谱提取: {result['spectrogram_shape']}")
+            print(f"  ⏱️  预处理耗时: {result['preprocessing_time']:.3f}秒")
+            print("🧠 步骤2: 模型推理")
+            print(f"  🎯 最终结果: '{result['text']}'")
+            print(f"  ⏱️  推理耗时: {result['inference_time']:.3f}秒")
 
-            # 步骤1: 音频预处理 (提取频谱特征)
-            if show_details:
-                print("🔧 步骤1: 音频预处理")
-
-            preprocess_start = time.time()
-            spectrogram_features = self.preprocessor.process(audio_path)
-            preprocess_time = time.time() - preprocess_start
-
-            if show_details:
-                print(f"  ✅ 频谱提取: {spectrogram_features.shape}")
-                print(f"  ⏱️  预处理耗时: {preprocess_time:.3f}秒")
-
-            # 步骤2: 模型推理
-            result = self._infer_from_spectrogram(spectrogram_features, show_details)
-
-            # 添加预处理时间
-            result['processing_time']['preprocessing'] = preprocess_time
-            result['processing_time']['total'] = time.time() - start_time
-            result['input_type'] = 'audio_file'
-
-            return result
-
-        except Exception as e:
-            return {
-                'text': '',
-                'success': False,
-                'error': str(e),
-                'input_type': 'audio_file'
-            }
+        # 转换结果格式以保持兼容性
+        return {
+            'text': result['text'],
+            'success': result['success'],
+            'processing_time': {
+                'preprocessing': result.get('preprocessing_time', 0),
+                'inference': result.get('inference_time', 0),
+                'total': result.get('total_time', 0)
+            },
+            'input_type': 'audio_file',
+            'spectrogram_shape': result.get('spectrogram_shape'),
+            'method': result.get('method', 'auto'),
+            'error': result.get('error')
+        }
 
     def recognize_from_spectrogram(self, spectrogram_path, show_details=True):
         """
@@ -135,42 +103,41 @@ class DualInputSpeechRecognizer:
             print("-" * 50)
 
         try:
-            start_time = time.time()
-
-            # 验证频谱文件
-            if not os.path.exists(spectrogram_path):
-                raise FileNotFoundError(f"频谱文件不存在: {spectrogram_path}")
-
-            # 步骤1: 加载预处理好的频谱特征
-            if show_details:
-                print("📂 步骤1: 加载频谱特征")
-
+            # 加载频谱特征
             load_start = time.time()
             spectrogram_features = np.load(spectrogram_path)
             load_time = time.time() - load_start
 
-            # 验证频谱特征格式
-            expected_shape = (200, 513)  # 或其他预期形状
-            if spectrogram_features.shape != expected_shape:
-                print(f"⚠️  频谱形状 {spectrogram_features.shape} 与预期 {expected_shape} 不匹配")
-                # 可以尝试调整形状或给出警告
-
             if show_details:
+                print("📂 步骤1: 加载频谱特征")
                 print(f"  ✅ 频谱加载: {spectrogram_features.shape}")
                 print(f"  📊 数值范围: [{spectrogram_features.min():.3f}, {spectrogram_features.max():.3f}]")
                 print(f"  ⏱️  加载耗时: {load_time:.3f}秒")
                 print("  🚀 跳过预处理，直接进入推理")
 
-            # 步骤2: 模型推理 (跳过预处理)
-            result = self._infer_from_spectrogram(spectrogram_features, show_details)
+            # 使用统一推理核心
+            result = self.inference_core.infer_from_spectrogram(spectrogram_features, method='auto')
 
-            # 添加加载时间
-            result['processing_time']['preprocessing'] = 0.0  # 跳过预处理
-            result['processing_time']['loading'] = load_time
-            result['processing_time']['total'] = time.time() - start_time
-            result['input_type'] = 'spectrogram_file'
+            if show_details and result['success']:
+                print("🧠 步骤2: 模型推理")
+                print(f"  🎯 最终结果: '{result['text']}'")
+                print(f"  ⏱️  推理耗时: {result['inference_time']:.3f}秒")
 
-            return result
+            # 转换结果格式以保持兼容性
+            return {
+                'text': result['text'],
+                'success': result['success'],
+                'processing_time': {
+                    'preprocessing': 0.0,  # 跳过预处理
+                    'loading': load_time,
+                    'inference': result.get('inference_time', 0),
+                    'total': load_time + result.get('inference_time', 0)
+                },
+                'input_type': 'spectrogram_file',
+                'spectrogram_shape': result.get('spectrogram_shape'),
+                'method': result.get('method', 'auto'),
+                'error': result.get('error')
+            }
 
         except Exception as e:
             return {
@@ -191,15 +158,9 @@ class DualInputSpeechRecognizer:
             print("-" * 50)
 
         try:
-            start_time = time.time()
-
             # 验证输入数组
             if not isinstance(spectrogram_array, np.ndarray):
                 raise ValueError("输入必须是numpy数组")
-
-            expected_shape = (200, 513)
-            if spectrogram_array.shape != expected_shape:
-                print(f"⚠️  输入形状 {spectrogram_array.shape} 与预期 {expected_shape} 不匹配")
 
             if show_details:
                 print("🧮 步骤1: 验证频谱数组")
@@ -207,15 +168,29 @@ class DualInputSpeechRecognizer:
                 print(f"  📊 数值范围: [{spectrogram_array.min():.3f}, {spectrogram_array.max():.3f}]")
                 print("  🚀 直接进入推理 (无需加载)")
 
-            # 直接推理
-            result = self._infer_from_spectrogram(spectrogram_array, show_details)
+            # 使用统一推理核心
+            result = self.inference_core.infer_from_spectrogram(spectrogram_array, method='auto')
 
-            result['processing_time']['preprocessing'] = 0.0
-            result['processing_time']['loading'] = 0.0
-            result['processing_time']['total'] = time.time() - start_time
-            result['input_type'] = 'spectrogram_array'
+            if show_details and result['success']:
+                print("🧠 步骤2: 模型推理")
+                print(f"  🎯 最终结果: '{result['text']}'")
+                print(f"  ⏱️  推理耗时: {result['inference_time']:.3f}秒")
 
-            return result
+            # 转换结果格式以保持兼容性
+            return {
+                'text': result['text'],
+                'success': result['success'],
+                'processing_time': {
+                    'preprocessing': 0.0,
+                    'loading': 0.0,
+                    'inference': result.get('inference_time', 0),
+                    'total': result.get('inference_time', 0)
+                },
+                'input_type': 'spectrogram_array',
+                'spectrogram_shape': result.get('spectrogram_shape'),
+                'method': result.get('method', 'auto'),
+                'error': result.get('error')
+            }
 
         except Exception as e:
             return {
@@ -225,106 +200,7 @@ class DualInputSpeechRecognizer:
                 'input_type': 'spectrogram_array'
             }
 
-    def _infer_from_spectrogram(self, spectrogram_features, show_details=True):
-        """从频谱特征进行推理 (核心推理逻辑)"""
-        if show_details:
-            print("🧠 步骤2: 模型推理")
-
-        inference_start = time.time()
-
-        # 转换为tensor
-        spectrogram_tensor = torch.FloatTensor(spectrogram_features).unsqueeze(0).to(self.device)
-
-        with torch.no_grad():
-            # 编码阶段
-            encoder_output = self.model.encode(spectrogram_tensor)
-
-            if show_details:
-                print(f"  🔍 编码器输出: {encoder_output.shape}")
-
-            # 解码阶段 - 贪婪解码
-            greedy_seq = self._greedy_decode(encoder_output)
-            greedy_text = vocab.decode(greedy_seq.tolist())
-
-            # 解码阶段 - 束搜索
-            beam_seq, beam_score = self._beam_search_decode(encoder_output)
-            beam_text = vocab.decode(beam_seq.tolist())
-
-            if show_details:
-                print(f"  🔤 贪婪解码: '{greedy_text}'")
-                print(f"  🔤 束搜索: '{beam_text}' (得分: {beam_score:.3f})")
-
-        inference_time = time.time() - inference_start
-
-        # 智能选择最终结果
-        final_text = beam_text if beam_text and len(beam_text.strip()) > 0 else greedy_text
-
-        if show_details:
-            print(f"\n🎯 最终结果: '{final_text}'")
-            print(f"⏱️  推理耗时: {inference_time:.3f}秒")
-
-        return {
-            'text': final_text,
-            'greedy_text': greedy_text,
-            'beam_text': beam_text,
-            'beam_score': beam_score,
-            'processing_time': {
-                'inference': inference_time
-            },
-            'spectrogram_shape': spectrogram_features.shape,
-            'success': True
-        }
-
-    def _greedy_decode(self, encoder_output, max_length=10):
-        """贪婪解码"""
-        decoded_seq = torch.LongTensor([[vocab.get_sos_idx()]]).to(self.device)
-
-        for step in range(max_length):
-            output = self.model.decode_step(decoded_seq, encoder_output)
-            next_token = output[:, -1, :].argmax(dim=-1, keepdim=True)
-            decoded_seq = torch.cat([decoded_seq, next_token], dim=1)
-
-            if next_token.item() == vocab.get_eos_idx():
-                break
-
-        return decoded_seq.squeeze(0)
-
-    def _beam_search_decode(self, encoder_output, beam_size=3, max_length=10):
-        """束搜索解码"""
-        device = encoder_output.device
-        beams = [(torch.LongTensor([[vocab.get_sos_idx()]]).to(device), 0.0)]
-
-        for step in range(max_length):
-            new_beams = []
-
-            for seq, score in beams:
-                if seq[0, -1].item() == vocab.get_eos_idx():
-                    new_beams.append((seq, score))
-                    continue
-
-                output = self.model.decode_step(seq, encoder_output)
-                logits = output[:, -1, :]
-
-                # 对过早EOS添加惩罚
-                if seq.size(1) < 3:
-                    logits[0, vocab.get_eos_idx()] -= 1.0
-
-                probs = torch.softmax(logits, dim=-1)
-                top_probs, top_indices = torch.topk(probs, beam_size)
-
-                for i in range(beam_size):
-                    new_seq = torch.cat([seq, top_indices[:, i:i + 1]], dim=1)
-                    new_score = score + torch.log(top_probs[:, i]).item()
-                    new_beams.append((new_seq, new_score))
-
-            new_beams.sort(key=lambda x: x[1], reverse=True)
-            beams = new_beams[:beam_size]
-
-            if all(seq[0, -1].item() == vocab.get_eos_idx() for seq, _ in beams):
-                break
-
-        best_seq, best_score = beams[0]
-        return best_seq.squeeze(0), best_score
+    # 移除重复的推理方法，已统一到 inference_core 模块
 
     def auto_recognize(self, input_path, show_details=True):
         """
