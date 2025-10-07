@@ -28,13 +28,21 @@ def test_inference_refactor():
     # 检查重构的文件
     print("\n📝 重构的文件:")
     refactored_files = [
-        'dual_input_inference.py',
+        'dual_input_inference.py'
+    ]
+    
+    print("\n🗑️ 已删除的冗余文件:")
+    deleted_files = [
         'inference.py'
     ]
     
     for file in refactored_files:
         exists = Path(file).exists()
         print(f"  {file}: {'✅' if exists else '❌'}")
+    
+    for file in deleted_files:
+        exists = Path(file).exists()
+        print(f"  {file}: {'🗑️ 已删除' if not exists else '⚠️ 仍存在'}")
 
 
 def analyze_code_reduction():
@@ -61,24 +69,11 @@ def analyze_code_reduction():
     except Exception as e:
         print(f"❌ 检查dual_input_inference.py失败: {e}")
     
-    # 检查inference.py的重构
-    try:
-        with open('inference.py', 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        if 'from inference_core import' in content:
-            print("✅ inference.py 已使用统一推理核心")
-        else:
-            print("❌ inference.py 未使用统一推理核心")
-        
-        # 检查是否还有重复的模型加载
-        if 'def _load_model' in content:
-            print("⚠️  inference.py 仍有重复的模型加载方法")
-        else:
-            print("✅ inference.py 模型加载已统一")
-            
-    except Exception as e:
-        print(f"❌ 检查inference.py失败: {e}")
+    # 检查inference.py是否已删除
+    if not Path('inference.py').exists():
+        print("✅ inference.py 已成功删除，消除冗余")
+    else:
+        print("⚠️  inference.py 仍然存在")
 
 
 def check_redundancy_elimination():
@@ -94,7 +89,7 @@ def check_redundancy_elimination():
         ('推理核心', 'def _infer_from_spectrogram')
     ]
     
-    files_to_check = ['dual_input_inference.py', 'inference.py']
+    files_to_check = ['dual_input_inference.py']
     
     for file in files_to_check:
         print(f"\n📄 检查 {file}:")
@@ -167,11 +162,11 @@ def main():
     
     print("\n💡 重构成果:")
     print("1. ✅ 创建统一推理核心 inference_core.py")
-    print("2. ✅ 消除模型加载代码冗余")
-    print("3. ✅ 统一解码算法实现")
-    print("4. ✅ 统一音频预处理逻辑")
-    print("5. ✅ 提供批量推理支持")
-    print("6. ✅ 保持向后兼容性")
+    print("2. ✅ 删除冗余文件 inference.py")
+    print("3. ✅ 消除模型加载代码冗余")
+    print("4. ✅ 统一解码算法实现")
+    print("5. ✅ 统一音频预处理逻辑")
+    print("6. ✅ 提供批量推理支持")
     
     print("\n🎯 架构优势:")
     print("- 🔧 单一职责：推理逻辑集中管理")

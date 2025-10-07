@@ -25,9 +25,8 @@ WaveSpectra2Text/
 │   └── 📄 data_utils.py              # 数据处理工具（兼容层）
 │
 ├── 🚀 推理系统
-│   ├── 📄 inference_core.py          # 统一推理核心（新增）
-│   ├── 📄 dual_input_inference.py    # 双输入推理系统（主推荐）
-│   └── 📄 inference.py               # 传统推理系统（兼容层）
+│   ├── 📄 inference_core.py          # 统一推理核心
+│   └── 📄 dual_input_inference.py    # 双输入推理系统（统一推理接口）
 │
 ├── 🏋️ 训练系统
 │   ├── 📁 train_at_different_scales/ # 不同规模的训练脚本
@@ -151,25 +150,30 @@ python dual_input_inference.py --compare
 python dual_input_inference.py --demo
 ```
 
-### 📊 传统推理系统
+### 📊 高级使用
 
-#### 识别单个音频文件
+#### 批量处理
 ```bash
-python inference.py --model checkpoints/best_model.pth --audio data/audio/Chinese_Number_01.wav
+# 批量处理音频目录
+python dual_input_inference.py --model checkpoints/best_model.pth --input data/audio/ --mode auto
+
+# 批量处理频谱文件
+python dual_input_inference.py --model checkpoints/best_model.pth --input data/features/ --mode spectrogram
 ```
 
-#### 批量识别
-```bash
-python inference.py --model checkpoints/best_model.pth --audio_dir data/audio --method auto
-```
+#### 编程接口使用
+```python
+# 使用统一推理核心
+from inference_core import InferenceCore
+core = InferenceCore('checkpoints/best_model.pth')
+result = core.infer_from_audio('audio.wav')
+print(result['text'])
 
-#### 使用不同解码策略
-```bash
-# 贪婪解码
-python inference.py --model checkpoints/best_model.pth --audio data/audio/Chinese_Number_01.wav --method greedy
-
-# 束搜索
-python inference.py --model checkpoints/best_model.pth --audio data/audio/Chinese_Number_01.wav --method beam --beam_size 5
+# 使用双输入识别器
+from dual_input_inference import DualInputSpeechRecognizer
+recognizer = DualInputSpeechRecognizer('checkpoints/best_model.pth')
+result = recognizer.recognize_from_audio('audio.wav')
+print(result['text'])
 ```
 
 ## 🔧 数据预处理
