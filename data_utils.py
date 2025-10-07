@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 import warnings
 
 # 导入新的模块
-from audio_preprocessing import PreprocessorFactory
+from audio_preprocess import PreprocessorFactory
 from audio_dataset import AudioDataset, FlexibleDataLoader, create_realtime_dataset, create_precomputed_dataset
 from vocab import vocab
 

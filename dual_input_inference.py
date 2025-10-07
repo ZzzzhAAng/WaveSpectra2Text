@@ -16,7 +16,7 @@ import json
 
 from model import create_model
 from vocab import vocab
-from audio_preprocessing import SpectrogramPreprocessor
+from audio_preprocess import SpectrogramPreprocessor
 import warnings
 
 warnings.filterwarnings('ignore')

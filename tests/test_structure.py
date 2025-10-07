@@ -15,7 +15,7 @@ def test_file_exists():
     print("🧪 测试文件结构...")
 
     required_files = [
-        'audio_preprocessing.py',
+        'audio_preprocess.py',
         'audio_dataset.py',
         'batch_preprocess.py',
         'data_utils.py',
@@ -40,7 +40,7 @@ def test_python_syntax():
     print("\n🧪 测试Python语法...")
 
     python_files = [
-        'audio_preprocessing.py',
+        'audio_preprocess.py',
         'audio_dataset.py',
         'batch_preprocess.py',
         'data_utils.py',
@@ -74,9 +74,9 @@ def test_class_structure():
     """测试类结构"""
     print("\n🧪 测试类结构...")
 
-    # 检查 audio_preprocessing.py 中的类
+    # 检查 audio_preprocess.py 中的类
     try:
-        with open('../audio_preprocessing.py', 'r', encoding='utf-8') as f:
+        with open('../audio_preprocess.py', 'r', encoding='utf-8') as f:
             content = f.read()
 
         tree = ast.parse(content)
@@ -93,13 +93,13 @@ def test_class_structure():
         missing_classes = [cls for cls in expected_classes if cls not in classes]
 
         if missing_classes:
-            print(f"❌ audio_preprocessing.py 缺少类: {missing_classes}")
+            print(f"❌ audio_preprocess.py 缺少类: {missing_classes}")
             return False
         else:
-            print("✅ audio_preprocessing.py 类结构正确")
+            print("✅ audio_preprocess.py 类结构正确")
 
     except Exception as e:
-        print(f"❌ 检查 audio_preprocessing.py 失败: {e}")
+        print(f"❌ 检查 audio_preprocess.py 失败: {e}")
         return False
 
     # 检查 audio_dataset.py 中的类

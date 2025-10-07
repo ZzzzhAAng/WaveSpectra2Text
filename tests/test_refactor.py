@@ -15,7 +15,7 @@ def test_imports():
     print("🧪 测试模块导入...")
 
     try:
-        from audio_preprocessing import PreprocessorFactory, SpectrogramPreprocessor, MelSpectrogramPreprocessor
+        from audio_preprocess import PreprocessorFactory, SpectrogramPreprocessor, MelSpectrogramPreprocessor
         from audio_dataset import AudioDataset, create_realtime_dataset, create_precomputed_dataset
         from batch_preprocess import BatchPreprocessor
         from data_utils import get_dataloader, AudioSpectrogramDataset
@@ -32,7 +32,7 @@ def test_preprocessor_factory():
     print("\n🧪 测试预处理器工厂...")
 
     try:
-        from audio_preprocessing import PreprocessorFactory
+        from audio_preprocess import PreprocessorFactory
 
         # 列出可用预处理器
         available = PreprocessorFactory.list_available()
@@ -88,7 +88,7 @@ def test_new_architecture():
 
     try:
         from audio_dataset import AudioDataset
-        from audio_preprocessing import PreprocessorFactory
+        from audio_preprocess import PreprocessorFactory
         from batch_preprocess import BatchPreprocessor
 
         # 测试预处理器创建
@@ -117,7 +117,7 @@ def test_configuration_consistency():
     print("\n🧪 测试配置一致性...")
 
     try:
-        from audio_preprocessing import PreprocessorFactory
+        from audio_preprocess import PreprocessorFactory
 
         # 创建相同配置的预处理器
         config = {

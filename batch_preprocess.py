@@ -13,7 +13,7 @@ from tqdm import tqdm
 import json
 import traceback
 
-from audio_preprocessing import PreprocessorFactory, OfflinePreprocessor
+from audio_preprocess import PreprocessorFactory, OfflinePreprocessor
 
 
 class BatchPreprocessorFixed:

@@ -1,24 +1,14 @@
 # WaveSpectra2Text
 # 语音识别项目 - 从频谱到文本
 
-本项目实现了一个从音频频谱直接识别中文数字（1-10）的语音识别系统。该系统的特点是在识别过程中不依赖原始音频，而是直接对音频的频谱特征进行分析，进而得到文本。
+本项目实现了一个从音频频谱直接识别对应文本额的语音识别系统。该系统的特点是在识别过程中不依赖原始音频，而是直接对音频的频谱特征进行分析，进而得到文本。
+
+现在以中文数字1～10为例
 
 ## 项目结构
 
 ```
-.
-├── vocab.py           # 词汇表管理
-├── model.py           # 神经网络模型（Encoder-Decoder架构）
-├── data_utils.py      # 数据处理工具
-├── train.py           # 训练脚本
-├── inference.py       # 推理脚本
-├── requirements.txt   # 依赖包
-├── config.json        # 配置文件
-├── data/
-│   ├── audio/         # 音频文件目录
-│   └── labels.csv     # 标签文件
-├── checkpoints/       # 模型检查点
-└── runs/              # TensorBoard日志
+
 ```
 
 ## 安装依赖
@@ -29,7 +19,7 @@ pip install -r requirements.txt
 
 ## 数据准备
 
-1. 将音频文件（示例所用为48kHz/24bit.wav文件）放在 `data/audio/` 目录下
+1. 将音频文件存放在 `data/audio/` 目录下
 2. 创建 `data/labels.csv` 文件，格式如下：
 
 ```csv
@@ -47,6 +37,8 @@ audio_3.wav,label_3
 - **词汇表**: 支持中文数字1～10（可扩展）以及特殊符号（PAD, SOS, EOS, UNK）
 
 ## 训练
+
+根据训练集大小选择适用于不同规模的 train_scale_x.py，并相应更改 config.json
 
 ### 基本训练
 
