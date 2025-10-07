@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-改进的训练脚本
-解决过拟合问题，添加数据分割和正则化
+大数据集训练脚本 - 适用于10000+样本
+基于原始train.py，针对大数据集优化
 """
 
 import os
@@ -9,19 +9,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import random_split
 import numpy as np
 from tqdm import tqdm
 import argparse
 import json
 from datetime import datetime
-from sklearn.model_selection import train_test_split
 
 from model import create_model
-from data_utils import AudioSpectrogramDataset, collate_fn
+from data_utils import get_dataloader, check_audio_files
 from vocab import vocab
 
 
-class ImprovedTrainer:
+class LargeDatasetTrainer:
     def __init__(self, model, train_loader, val_loader, device, config):
         self.model = model
         self.train_loader = train_loader
@@ -29,26 +29,26 @@ class ImprovedTrainer:
         self.device = device
         self.config = config
 
-        # 优化器 - 降低学习率
-        self.optimizer = optim.Adam(
+        # 优化器 - 大数据集可以用更高学习率
+        self.optimizer = optim.AdamW(  # AdamW对大数据集更好
             model.parameters(),
             lr=config['learning_rate'],
-            weight_decay=config['weight_decay']
+            weight_decay=config['weight_decay'],
+            betas=(0.9, 0.98)  # 更适合Transformer
         )
 
-        # 学习率调度器 - 更保守的设置
-        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        # 学习率调度器 - 余弦退火
+        self.scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             self.optimizer,
-            mode='min',
-            factor=0.7,  # 更温和的衰减
-            patience=10,  # 更大的耐心
-            min_lr=1e-6
+            T_0=20,  # 20个epoch后重启
+            T_mult=2,  # 每次重启周期翻倍
+            eta_min=1e-6
         )
 
-        # 损失函数 - 添加标签平滑
+        # 损失函数
         self.criterion = nn.CrossEntropyLoss(
             ignore_index=vocab.get_padding_idx(),
-            label_smoothing=0.1  # 标签平滑防止过拟合
+            label_smoothing=0.1
         )
 
         # 日志
@@ -60,7 +60,7 @@ class ImprovedTrainer:
         self.train_losses = []
         self.val_losses = []
         self.patience_counter = 0
-        self.max_patience = 20  # 早停耐心
+        self.max_patience = 10
 
     def train_epoch(self):
         """训练一个epoch"""
@@ -71,25 +71,29 @@ class ImprovedTrainer:
         progress_bar = tqdm(self.train_loader, desc=f'Epoch {self.epoch + 1}')
 
         for batch_idx, batch in enumerate(progress_bar):
-            spectrograms = batch['spectrograms'].to(self.device)
+            # 兼容新旧接口
+
+            if 'features' in batch:
+
+                spectrograms = batch['features'].to(self.device)
+
+            else:
+
+                spectrograms = (batch['features'] if 'features' in batch else batch['spectrograms']).to(self.device)
             labels = batch['labels'].to(self.device)
 
-            # 准备输入和目标
             tgt_input = labels[:, :-1]
             tgt_output = labels[:, 1:]
 
-            # 前向传播
             self.optimizer.zero_grad()
 
             outputs = self.model(spectrograms, tgt_input)
 
-            # 计算损失
             loss = self.criterion(
                 outputs.reshape(-1, outputs.size(-1)),
                 tgt_output.reshape(-1)
             )
 
-            # 反向传播
             loss.backward()
 
             # 梯度裁剪
@@ -99,7 +103,6 @@ class ImprovedTrainer:
 
             total_loss += loss.item()
 
-            # 更新进度条
             progress_bar.set_postfix({
                 'loss': f'{loss.item():.4f}',
                 'avg_loss': f'{total_loss / (batch_idx + 1):.4f}'
@@ -123,7 +126,15 @@ class ImprovedTrainer:
 
         with torch.no_grad():
             for batch in tqdm(self.val_loader, desc='Validation'):
-                spectrograms = batch['spectrograms'].to(self.device)
+                # 兼容新旧接口
+
+                if 'features' in batch:
+
+                    spectrograms = batch['features'].to(self.device)
+
+                else:
+
+                    spectrograms = (batch['features'] if 'features' in batch else batch['spectrograms']).to(self.device)
                 labels = batch['labels'].to(self.device)
 
                 tgt_input = labels[:, :-1]
@@ -150,7 +161,6 @@ class ImprovedTrainer:
 
         self.val_losses.append(avg_loss)
 
-        # 记录到tensorboard
         self.writer.add_scalar('Val/Loss', avg_loss, self.epoch)
         self.writer.add_scalar('Val/Accuracy', accuracy, self.epoch)
 
@@ -191,7 +201,7 @@ class ImprovedTrainer:
 
             # 学习率调度
             old_lr = self.optimizer.param_groups[0]['lr']
-            self.scheduler.step(val_loss)
+            self.scheduler.step()
             new_lr = self.optimizer.param_groups[0]['lr']
 
             # 打印结果
@@ -201,14 +211,14 @@ class ImprovedTrainer:
             print(f"  Val Acc: {val_acc:.4f}")
             print(f"  LR: {new_lr:.6f}")
 
-            if new_lr != old_lr:
-                print(f"  -> 学习率从 {old_lr:.6f} 降低到 {new_lr:.6f}")
+            if abs(new_lr - old_lr) > 1e-7:
+                print(f"  -> 学习率变化: {old_lr:.6f} -> {new_lr:.6f}")
 
             # 早停检查
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 self.patience_counter = 0
-                self.save_checkpoint(f"checkpoints/best_model.pth")
+                self.save_checkpoint(f"../checkpoints/best_model.pth")
                 print("  -> 新的最佳模型!")
             else:
                 self.patience_counter += 1
@@ -226,138 +236,102 @@ class ImprovedTrainer:
         self.writer.close()
 
 
-def split_dataset(audio_dir, labels_file, test_size=0.2, random_state=42):
-    """分割数据集为训练集和验证集"""
-    import pandas as pd
+def split_large_dataset(dataset, train_ratio=0.8, val_ratio=0.1):
+    """分割大数据集"""
+    total_size = len(dataset)
+    train_size = int(train_ratio * total_size)
+    val_size = int(val_ratio * total_size)
+    test_size = total_size - train_size - val_size
 
-    df = pd.read_csv(labels_file)
+    train_dataset, val_dataset, test_dataset = random_split(
+        dataset, [train_size, val_size, test_size],
+        generator=torch.Generator().manual_seed(42)
+    )
 
-    # 检查数据集大小
-    if len(df) < 5:
-        print("⚠️  数据集太小，无法分割，使用全部数据进行训练和验证")
-        return df, df
+    print(f"数据集分割:")
+    print(f"  训练集: {len(train_dataset)} 样本 ({train_ratio * 100:.1f}%)")
+    print(f"  验证集: {len(val_dataset)} 样本 ({val_ratio * 100:.1f}%)")
+    print(f"  测试集: {len(test_dataset)} 样本 ({(1 - train_ratio - val_ratio) * 100:.1f}%)")
 
-    # 检查每个标签的样本数
-    label_counts = df['label'].value_counts()
-    min_samples = label_counts.min()
-
-    print(f"标签分布: {dict(label_counts)}")
-
-    if min_samples < 2:
-        print("⚠️  部分标签只有1个样本，无法进行分层分割")
-        print("使用随机分割代替分层分割")
-
-        # 使用简单的随机分割
-        train_df, val_df = train_test_split(
-            df,
-            test_size=test_size,
-            random_state=random_state,
-            shuffle=True
-        )
-    else:
-        # 可以进行分层分割
-        print("使用分层分割保持标签分布")
-        train_df, val_df = train_test_split(
-            df,
-            test_size=test_size,
-            random_state=random_state,
-            stratify=df['label']
-        )
-
-    print(f"数据分割结果:")
-    print(f"  训练集: {len(train_df)} 样本")
-    print(f"  验证集: {len(val_df)} 样本")
-
-    # 显示分割后的标签分布
-    print(f"  训练集标签: {dict(train_df['label'].value_counts())}")
-    print(f"  验证集标签: {dict(val_df['label'].value_counts())}")
-
-    return train_df, val_df
-
-
-def create_dataloader_from_df(df, audio_dir, batch_size, shuffle=True):
-    """从DataFrame创建数据加载器"""
-    from torch.utils.data import DataLoader
-
-    # 创建临时标签文件
-    temp_labels_file = f"temp_labels_{hash(str(df.values.tolist()))}.csv"
-    df.to_csv(temp_labels_file, index=False, encoding='utf-8')
-
-    try:
-        dataset = AudioSpectrogramDataset(audio_dir, temp_labels_file)
-        dataloader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            collate_fn=collate_fn
-        )
-        return dataloader
-    finally:
-        # 清理临时文件
-        if os.path.exists(temp_labels_file):
-            os.remove(temp_labels_file)
+    return train_dataset, val_dataset, test_dataset
 
 
 def main():
-    """主函数"""
-    # 改进的默认配置
+    """主函数 - 大数据集配置"""
+
+    # 大数据集优化配置
     config = {
-        'experiment_name': f'improved_speech_recognition_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-        'batch_size': 2,  # 减小批大小
-        'learning_rate': 5e-5,  # 降低学习率
-        'weight_decay': 1e-4,  # 增加权重衰减
-        'grad_clip': 0.5,  # 减小梯度裁剪
-        'num_epochs': 50,  # 减少训练轮数
-        'save_every': 10,
-        'hidden_dim': 128,  # 减小模型大小
-        'encoder_layers': 2,  # 减少层数
-        'decoder_layers': 2,
-        'dropout': 0.3,  # 增加dropout
+        'experiment_name': f'large_dataset_speech_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+        'batch_size': 32,  # 大批大小
+        'learning_rate': 3e-4,  # 较高学习率
+        'weight_decay': 1e-4,  # 适中正则化
+        'grad_clip': 1.0,  # 标准梯度裁剪
+        'num_epochs': 200,  # 更多训练轮数
+        'save_every': 20,
+        'hidden_dim': 512,  # 大模型
+        'encoder_layers': 6,  # 更多层
+        'decoder_layers': 6,
+        'dropout': 0.1,  # 较少dropout
         'audio_dir': 'data/audio',
         'labels_file': 'data/labels.csv'
     }
 
-    print("🔧 改进的训练脚本")
-    print("主要改进:")
-    print("  ✅ 数据集分割 (训练/验证)")
-    print("  ✅ 降低学习率和模型复杂度")
-    print("  ✅ 添加正则化 (dropout, weight_decay, label_smoothing)")
-    print("  ✅ 早停机制")
+    print("🚀 大数据集训练脚本 (适用于10000+样本)")
+    print("配置特点:")
+    print("  ✅ 大模型 (hidden_dim=512, 6层)")
+    print("  ✅ 高学习率 (3e-4)")
+    print("  ✅ 大批大小 (32)")
+    print("  ✅ 余弦退火学习率调度")
+    print("  ✅ AdamW优化器")
+    print("  ✅ 数据集自动分割 (80%/10%/10%)")
     print("=" * 60)
+
+    # 检查音频文件
+    if not check_audio_files(config['audio_dir'], config['labels_file']):
+        print("错误: 音频文件检查失败")
+        return
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"使用设备: {device}")
 
-    os.makedirs('checkpoints', exist_ok=True)
-    os.makedirs('runs', exist_ok=True)
+    os.makedirs('../checkpoints', exist_ok=True)
+    os.makedirs('../runs', exist_ok=True)
 
     try:
-        # 分割数据集
-        train_df, val_df = split_dataset(
+        # 创建完整数据集
+        from data_utils import AudioSpectrogramDataset
+        from torch.utils.data import DataLoader
+
+        full_dataset = AudioSpectrogramDataset(
             config['audio_dir'],
             config['labels_file']
         )
 
+        # 分割数据集
+        train_dataset, val_dataset, _ = split_large_dataset(full_dataset)
+
         # 创建数据加载器
-        train_loader = create_dataloader_from_df(
-            train_df,
-            config['audio_dir'],
-            config['batch_size'],
-            shuffle=True
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=config['batch_size'],
+            shuffle=True,
+            num_workers=4,  # 多进程加载
+            pin_memory=True if device.type == 'cuda' else False
         )
 
-        val_loader = create_dataloader_from_df(
-            val_df,
-            config['audio_dir'],
-            config['batch_size'],
-            shuffle=False
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=config['batch_size'],
+            shuffle=False,
+            num_workers=4,
+            pin_memory=True if device.type == 'cuda' else False
         )
 
     except Exception as e:
         print(f"数据加载失败: {e}")
         return
 
-    # 创建模型
+    # 创建大模型
     model = create_model(
         vocab_size=vocab.vocab_size,
         hidden_dim=config['hidden_dim'],
@@ -366,8 +340,10 @@ def main():
         dropout=config['dropout']
     ).to(device)
 
+    print(f"模型大小: {sum(p.numel() for p in model.parameters())} 参数")
+
     # 创建训练器
-    trainer = ImprovedTrainer(model, train_loader, val_loader, device, config)
+    trainer = LargeDatasetTrainer(model, train_loader, val_loader, device, config)
 
     # 开始训练
     try:

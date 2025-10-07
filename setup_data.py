@@ -202,7 +202,7 @@ def main():
     print("\n下一步:")
     print("1. 检查并编辑 data/labels.csv 文件")
     print("2. 确保标签与音频内容匹配")
-    print("3. 运行训练: python3 train_standard.py")
+    print("3. 运行训练: python3 train_scale_1.py")
 
 
 if __name__ == "__main__":

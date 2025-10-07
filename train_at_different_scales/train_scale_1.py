@@ -67,7 +67,11 @@ class SimpleTrainer:
         progress_bar = tqdm(self.dataloader, desc=f'Epoch {self.epoch + 1}')
 
         for batch_idx, batch in enumerate(progress_bar):
-            spectrograms = batch['spectrograms'].to(self.device)
+            # 兼容新旧接口
+            if 'features' in batch:
+                spectrograms = batch['features'].to(self.device)
+            else:
+                spectrograms = batch['spectrograms'].to(self.device)
             labels = batch['labels'].to(self.device)
 
             # 准备输入和目标
@@ -173,7 +177,7 @@ class SimpleTrainer:
             if train_loss < self.best_loss:
                 self.best_loss = train_loss
                 self.patience_counter = 0
-                self.save_checkpoint(f"checkpoints/best_model.pth")
+                self.save_checkpoint(f"../checkpoints/best_model.pth")
                 print("  -> 新的最佳模型!")
             else:
                 self.patience_counter += 1
@@ -227,8 +231,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"使用设备: {device}")
 
-    os.makedirs('checkpoints', exist_ok=True)
-    os.makedirs('runs', exist_ok=True)
+    os.makedirs('../checkpoints', exist_ok=True)
+    os.makedirs('../runs', exist_ok=True)
 
     try:
         # 创建数据加载器 - 使用全部数据

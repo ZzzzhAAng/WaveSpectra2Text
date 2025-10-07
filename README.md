@@ -1,9 +1,7 @@
-<<<<<<< HEAD
 # WaveSpectra2Text
-=======
 # 语音识别项目 - 从频谱到文本
 
-本项目实现了一个从音频频谱直接识别中文数字（1-10）的语音识别系统。该系统的特点是在识别过程中不依赖原始音频，而是直接分析音频的频谱特征进行文本识别。
+本项目实现了一个从音频频谱直接识别中文数字（1-10）的语音识别系统。该系统的特点是在识别过程中不依赖原始音频，而是直接对音频的频谱特征进行分析，进而得到文本。
 
 ## 项目结构
 
@@ -20,7 +18,7 @@
 │   ├── audio/         # 音频文件目录
 │   └── labels.csv     # 标签文件
 ├── checkpoints/       # 模型检查点
-└── runs/             # TensorBoard日志
+└── runs/              # TensorBoard日志
 ```
 
 ## 安装依赖
@@ -31,24 +29,14 @@ pip install -r requirements.txt
 
 ## 数据准备
 
-### 自动创建示例数据
-
-运行训练脚本时会自动创建示例数据：
-
-```bash
-python train_standard.py --create_data
-```
-
-### 手动准备数据
-
-1. 将音频文件放在 `data/audio/` 目录下
+1. 将音频文件（示例所用为48kHz/24bit.wav文件）放在 `data/audio/` 目录下
 2. 创建 `data/labels.csv` 文件，格式如下：
 
 ```csv
 filename,label
-1.wav,一
-2.wav,二
-3.wav,三
+audio_1.wav,label_1
+audio_2.wav,label_2
+audio_3.wav,label_3
 ...
 ```
 
@@ -56,26 +44,26 @@ filename,label
 
 - **编码器**: 基于Transformer的频谱编码器，将STFT频谱特征编码为隐藏表示
 - **解码器**: 基于Transformer的注意力解码器，将编码特征解码为文本序列
-- **词汇表**: 支持中文数字1-10以及特殊符号（PAD, SOS, EOS, UNK）
+- **词汇表**: 支持中文数字1～10（可扩展）以及特殊符号（PAD, SOS, EOS, UNK）
 
 ## 训练
 
 ### 基本训练
 
 ```bash
-python train_standard.py
+python train_scale_1.py
 ```
 
 ### 使用自定义配置
 
 ```bash
-python train_standard.py --config my_config.json
+python train_scale_1.py --config config.json
 ```
 
 ### 从检查点恢复训练
 
 ```bash
-python train_standard.py --resume checkpoints/checkpoint_epoch_50.pth
+python train_scale_1.py --resume checkpoints/checkpoint_epoch_50.pth
 ```
 
 ## 推理
@@ -101,7 +89,7 @@ python inference.py --model checkpoints/best_model.pth --audio_dir data/audio --
 ### 使用束搜索
 
 ```bash
-python inference.py --model checkpoints/best_model.pth --audio data/audio/1.wav --beam_size 5
+python inference.py --model checkpoints/best_model.pth --audio data/audio/audio_1.wav --beam_size 5
 ```
 
 ## 配置参数
@@ -156,7 +144,10 @@ tensorboard --logdir runs
 - 支持多语言识别
 - 添加语言模型后处理
 
-## 许可证
+## 其他说明
 
-MIT License
->>>>>>> d62e003 (Basic framework of the model, with a tiny training set)
+### 可选
+
+- 可选音频格式参考：wav
+- data/audio中的Chinese_Number_xx.wav等音频文件来自Logic Pro自带声音包，仅供学习使用
+- 

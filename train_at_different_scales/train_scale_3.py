@@ -64,7 +64,15 @@ class Trainer:
         progress_bar = tqdm(self.train_loader, desc=f'Epoch {self.epoch + 1}')
 
         for batch_idx, batch in enumerate(progress_bar):
-            spectrograms = batch['spectrograms'].to(self.device)
+            # 兼容新旧接口
+
+            if 'features' in batch:
+
+                spectrograms = batch['features'].to(self.device)
+
+            else:
+
+                spectrograms = (batch['features'] if 'features' in batch else batch['spectrograms']).to(self.device)
             labels = batch['labels'].to(self.device)
 
             # 准备输入和目标
@@ -122,7 +130,15 @@ class Trainer:
 
         with torch.no_grad():
             for batch in tqdm(self.val_loader, desc='Validation'):
-                spectrograms = batch['spectrograms'].to(self.device)
+                # 兼容新旧接口
+
+                if 'features' in batch:
+
+                    spectrograms = batch['features'].to(self.device)
+
+                else:
+
+                    spectrograms = (batch['features'] if 'features' in batch else batch['spectrograms']).to(self.device)
                 labels = batch['labels'].to(self.device)
 
                 # 准备输入和目标
@@ -226,7 +242,7 @@ class Trainer:
             # 保存最佳模型
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
-                self.save_checkpoint(f"checkpoints/best_model.pth")
+                self.save_checkpoint(f"../checkpoints/best_model.pth")
                 print("  -> 新的最佳模型!")
 
             # 定期保存检查点
@@ -297,8 +313,8 @@ def main():
     print(f"使用设备: {device}")
 
     # 创建目录
-    os.makedirs('checkpoints', exist_ok=True)
-    os.makedirs('runs', exist_ok=True)
+    os.makedirs('../checkpoints', exist_ok=True)
+    os.makedirs('../runs', exist_ok=True)
 
     # 数据加载器
     try:
