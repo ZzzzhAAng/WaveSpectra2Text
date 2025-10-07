@@ -292,20 +292,21 @@ def split_dataset(audio_dir, labels_file, test_size=0.2, random_state=42):
 
 
 def create_dataloader_from_df(df, audio_dir, batch_size, shuffle=True):
-    """从DataFrame创建数据加载器"""
-    from torch.utils.data import DataLoader
-
+    """从DataFrame创建数据加载器 - 使用统一工具"""
+    from data_utils import get_dataloader
+    
     # 创建临时标签文件
     temp_labels_file = f"temp_labels_{hash(str(df.values.tolist()))}.csv"
     df.to_csv(temp_labels_file, index=False, encoding='utf-8')
 
     try:
-        dataset = AudioSpectrogramDataset(audio_dir, temp_labels_file)
-        dataloader = DataLoader(
-            dataset,
+        # 使用统一的数据加载器
+        dataloader = get_dataloader(
+            audio_dir=audio_dir,
+            labels_file=temp_labels_file,
             batch_size=batch_size,
             shuffle=shuffle,
-            collate_fn=collate_fn
+            mode='realtime'
         )
         return dataloader
     finally:

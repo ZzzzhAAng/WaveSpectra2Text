@@ -298,14 +298,18 @@ def main():
     os.makedirs('../runs', exist_ok=True)
 
     try:
-        # 创建完整数据集
-        from data_utils import AudioSpectrogramDataset
+        # 创建完整数据集 - 使用统一工具
+        from data_utils import get_dataloader
         from torch.utils.data import DataLoader
 
-        full_dataset = AudioSpectrogramDataset(
-            config['audio_dir'],
-            config['labels_file']
+        # 先创建一个临时数据加载器来获取数据集
+        temp_loader = get_dataloader(
+            audio_dir=config['audio_dir'],
+            labels_file=config['labels_file'],
+            batch_size=1,
+            mode='realtime'
         )
+        full_dataset = temp_loader.dataset
 
         # 分割数据集
         train_dataset, val_dataset, _ = split_large_dataset(full_dataset)

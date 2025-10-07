@@ -102,31 +102,8 @@ def collate_fn(batch):
     }
 
 
-def create_labels_file_if_not_exists(labels_file='data/labels.csv'):
-    """如果标签文件不存在，创建示例标签文件 - 使用统一工具"""
-    from common_utils import LabelManager
-    
-    if os.path.exists(labels_file):
-        print(f"标签文件已存在: {labels_file}")
-        return
-
-    # 使用统一工具创建标签模板
-    success = LabelManager.create_labels_template('data/audio', labels_file, auto_labels=True)
-    
-    if not success:
-        # 如果没有音频文件，创建示例标签文件
-        labels_data = {
-            'filename': [
-                '1.wav', '2.wav', '3.wav', '4.wav', '5.wav',
-                '6.wav', '7.wav', '8.wav', '9.wav', '10.wav'
-            ],
-            'label': ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
-        }
-
-        df = pd.DataFrame(labels_data)
-        df.to_csv(labels_file, index=False, encoding='utf-8')
-        print(f"已创建示例标签文件: {labels_file}")
-        print("请根据你的实际音频文件修改标签文件中的filename字段")
+# 使用统一的create_labels_file_if_not_exists函数，避免重复实现
+from common_utils import create_labels_file_if_not_exists
 
 
 def check_audio_files(audio_dir, labels_file):

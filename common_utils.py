@@ -6,8 +6,6 @@
 """
 
 import os
-import numpy as np
-import librosa
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Union
 import csv
@@ -18,6 +16,18 @@ try:
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
+try:
+    import librosa
+    HAS_LIBROSA = True
+except ImportError:
+    HAS_LIBROSA = False
 
 
 class AudioProcessor:
@@ -39,7 +49,7 @@ class AudioProcessor:
         self.hop_length = hop_length
         self.max_length = max_length
     
-    def load_audio(self, audio_path: Union[str, Path]) -> Tuple[np.ndarray, int]:
+    def load_audio(self, audio_path: Union[str, Path]) -> Tuple:
         """
         统一的音频加载方法
         
@@ -50,13 +60,16 @@ class AudioProcessor:
             audio: 音频数据
             sr: 采样率
         """
+        if not HAS_LIBROSA:
+            raise ImportError("需要安装librosa: pip install librosa")
+        
         try:
             audio, sr = librosa.load(str(audio_path), sr=self.sample_rate)
             return audio, sr
         except Exception as e:
             raise RuntimeError(f"加载音频文件失败 {audio_path}: {e}")
     
-    def extract_spectrogram(self, audio_path: Union[str, Path]) -> np.ndarray:
+    def extract_spectrogram(self, audio_path: Union[str, Path]):
         """
         统一的频谱提取方法 - 替代各个文件中的重复实现
         
@@ -66,6 +79,9 @@ class AudioProcessor:
         Returns:
             spectrogram: 频谱特征 (max_length, freq_bins)
         """
+        if not HAS_NUMPY or not HAS_LIBROSA:
+            raise ImportError("需要安装numpy和librosa: pip install numpy librosa")
+        
         # 加载音频
         audio, sr = self.load_audio(audio_path)
         
@@ -84,8 +100,11 @@ class AudioProcessor:
         
         return spectrogram.astype(np.float32)
     
-    def _normalize_length(self, spectrogram: np.ndarray) -> np.ndarray:
+    def _normalize_length(self, spectrogram):
         """标准化序列长度"""
+        if not HAS_NUMPY:
+            raise ImportError("需要安装numpy: pip install numpy")
+            
         if len(spectrogram) > self.max_length:
             return spectrogram[:self.max_length]
         else:
@@ -277,7 +296,13 @@ class LabelManager:
                     
                     def iterrows(self):
                         for i, row in enumerate(self.data):
-                            yield i, type('Row', (), row)()
+                            # 创建一个可以用属性和字典方式访问的对象
+                            class Row:
+                                def __init__(self, data):
+                                    self.__dict__.update(data)
+                                def __getitem__(self, key):
+                                    return self.__dict__[key]
+                            yield i, Row(row)
                     
                     def __len__(self):
                         return len(self.data)
@@ -403,23 +428,26 @@ label_manager = LabelManager()
 file_utils = FileUtils()
 
 
-# 向后兼容的便捷函数
-def create_labels_template(audio_files, output_file='data/labels.csv'):
-    """向后兼容setup_data.py中的函数"""
-    if isinstance(audio_files, (str, Path)):
-        # 如果传入的是目录路径
-        return LabelManager.create_labels_template(audio_files, output_file)
+# 向后兼容的便捷函数 - 统一接口，避免重复实现
+def create_labels_template(audio_files_or_dir, output_file='data/labels.csv'):
+    """统一的标签模板创建函数 - 兼容所有调用方式"""
+    if isinstance(audio_files_or_dir, (str, Path)):
+        # 目录路径
+        return LabelManager.create_labels_template(audio_files_or_dir, output_file)
+    elif isinstance(audio_files_or_dir, list) and audio_files_or_dir:
+        # 文件列表 - 从第一个文件推断目录
+        audio_dir = Path(audio_files_or_dir[0]).parent
+        return LabelManager.create_labels_template(audio_dir, output_file)
     else:
-        # 如果传入的是文件列表，转换为临时目录处理
-        print("⚠️  建议使用 LabelManager.create_labels_template(audio_dir, output_file)")
+        # 默认目录
         return LabelManager.create_labels_template('data/audio', output_file)
 
 
 def create_labels_file_if_not_exists(labels_file='data/labels.csv'):
-    """向后兼容data_utils.py中的函数"""
+    """统一的标签文件创建函数 - 如果不存在则创建"""
     if os.path.exists(labels_file):
         print(f"标签文件已存在: {labels_file}")
-        return
+        return True
     
     return LabelManager.create_labels_template('data/audio', labels_file, auto_labels=True)
 

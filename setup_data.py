@@ -15,24 +15,8 @@ def scan_audio_files(audio_dir='data/audio'):
     return LabelManager.scan_audio_files(audio_dir)
 
 
-def create_labels_template(audio_files_or_dir, output_file='data/labels.csv'):
-    """根据音频文件创建标签模板 - 使用统一工具"""
-    if isinstance(audio_files_or_dir, (str, Path)):
-        # 如果传入目录路径，直接使用统一工具
-        return LabelManager.create_labels_template(audio_files_or_dir, output_file)
-    else:
-        # 如果传入文件列表，保持向后兼容
-        print("⚠️  检测到旧版本调用方式，建议直接传入音频目录路径")
-        if not audio_files_or_dir:
-            print("没有找到音频文件")
-            return False
-        
-        # 从文件列表推断目录
-        if audio_files_or_dir:
-            audio_dir = audio_files_or_dir[0].parent
-            return LabelManager.create_labels_template(audio_dir, output_file)
-        
-        return False
+# 使用统一的create_labels_template函数，避免重复实现
+from common_utils import create_labels_template
 
 
 def validate_labels_file(labels_file='data/labels.csv', audio_dir='data/audio'):
