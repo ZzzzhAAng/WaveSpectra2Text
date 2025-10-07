@@ -13,6 +13,7 @@ import hashlib
 import time
 from pathlib import Path
 from typing import Dict, List, Set, Optional
+from common_utils import LabelManager, AudioProcessor, FileUtils
 
 
 class SimpleAutoUpdater:
@@ -168,18 +169,9 @@ class SimpleAutoUpdater:
             return False
     
     def scan_audio_files(self) -> List[str]:
-        """扫描音频文件"""
-        if not self.audio_dir.exists():
-            return []
-        
-        audio_extensions = {'.wav', '.mp3', '.flac', '.m4a', '.aac', '.ogg'}
-        audio_files = []
-        
-        for file_path in self.audio_dir.iterdir():
-            if file_path.suffix.lower() in audio_extensions:
-                audio_files.append(file_path.name)
-        
-        return sorted(audio_files)
+        """扫描音频文件 - 使用统一工具"""
+        audio_files = LabelManager.scan_audio_files(self.audio_dir)
+        return [f.name for f in audio_files]
     
     def check_and_update(self) -> Dict[str, bool]:
         """检查并更新"""

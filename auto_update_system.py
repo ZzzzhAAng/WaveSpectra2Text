@@ -18,6 +18,7 @@ import argparse
 
 from vocab import vocab
 from audio_preprocess import PreprocessorFactory, OfflinePreprocessor
+from common_utils import LabelManager, AudioProcessor, FileUtils
 
 
 class AutoUpdateSystem:
