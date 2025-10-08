@@ -493,7 +493,7 @@ pip install librosa soundfile
 ```bash
 # 问题：内存不足 (OOM)
 # 解决：减少batch_size或hidden_dim
-# 编辑config.json: "batch_size": 1, "hidden_dim": 16
+# 编辑配置文件: batch_size: 1, hidden_dim: 16
 
 # 问题：训练速度慢
 # 解决：使用预计算模式
@@ -510,7 +510,7 @@ python scripts/batch_preprocess.py --audio_dir data/audio --labels_file data/lab
 
 #### 推理优化
 1. **使用频谱输入模式**: 速度提升5-10倍
-2. **批量推理**: 使用 `dual_input_inference.py` 的批量功能
+2. **批量推理**: 使用 `inference.py` 的批量功能
 3. **缓存机制**: 启用特征缓存避免重复计算
 
 ## 🌟 扩展功能
