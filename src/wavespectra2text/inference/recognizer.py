@@ -9,14 +9,12 @@ import os
 import torch
 import numpy as np
 import librosa
-import argparse
 from pathlib import Path
 import time
 import json
 
 from ..core.model import create_model
 from ..core.vocab import vocab
-from ..data.preprocessing import SpectrogramPreprocessor
 from ..core.inference import InferenceCore, BatchInference
 import warnings
 
@@ -89,6 +87,7 @@ class DualInputSpeechRecognizer:
             'input_type': 'audio_file',
             'spectrogram_shape': result.get('spectrogram_shape'),
             'method': result.get('method', 'auto'),
+            'mode': 'audio',  # 添加mode字段
             'error': result.get('error')
         }
 
@@ -136,6 +135,7 @@ class DualInputSpeechRecognizer:
                 'input_type': 'spectrogram_file',
                 'spectrogram_shape': result.get('spectrogram_shape'),
                 'method': result.get('method', 'auto'),
+                'mode': 'spectrogram',  # 添加mode字段
                 'error': result.get('error')
             }
 
@@ -189,6 +189,7 @@ class DualInputSpeechRecognizer:
                 'input_type': 'spectrogram_array',
                 'spectrogram_shape': result.get('spectrogram_shape'),
                 'method': result.get('method', 'auto'),
+                'mode': 'spectrogram_array',  # 添加mode字段
                 'error': result.get('error')
             }
 
@@ -232,7 +233,8 @@ class DualInputSpeechRecognizer:
                 'text': '',
                 'success': False,
                 'error': f'不支持的文件格式: {file_ext}',
-                'input_type': 'unknown'
+                'input_type': 'unknown',
+                'mode': 'unknown'  # 添加mode字段
             }
 
 
@@ -250,11 +252,15 @@ import numpy as np
 
 def external_audio_preprocessing(audio_path):
     """外部系统的音频预处理 - 使用统一工具"""
-    from common_utils import AudioProcessor
+    from ..data.preprocessing import AudioPreprocessor, PreprocessorFactory
     
     # 使用统一的音频处理器
-    processor = AudioProcessor(sample_rate=48000, n_fft=1024, hop_length=512, max_length=200)
-    return processor.extract_spectrogram(audio_path)
+    processor = PreprocessorFactory.create('spectrogram', 
+                                         sample_rate=48000, 
+                                         n_fft=1024, 
+                                         hop_length=512, 
+                                         max_length=200)
+    return processor.process(audio_path)
 
 # 外部系统处理音频
 audio_file = "external_audio.wav"
@@ -264,7 +270,7 @@ spectrogram = external_audio_preprocessing(audio_file)
 np.save("external_spectrogram.npy", spectrogram)
 
 # === 语音识别系统 ===
-from dual_input_inference import DualInputSpeechRecognizer
+from .recognizer import DualInputSpeechRecognizer
 
 # 初始化识别器
 recognizer = DualInputSpeechRecognizer("checkpoints/best_model.pth")

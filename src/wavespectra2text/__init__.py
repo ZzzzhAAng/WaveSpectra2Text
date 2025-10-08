@@ -29,10 +29,7 @@ from .data.preprocessing import AudioPreprocessor, PreprocessorFactory
 from .data.dataset import AudioDataset
 from .training.trainer import BaseTrainer, create_trainer
 from .inference.recognizer import DualInputSpeechRecognizer
-from .inference.strategies import DecoderStrategy, GreedyDecoder, BeamSearchDecoder, SamplingDecoder
-from .utils.audio import AudioProcessor, LabelManager, FileUtils
-from .utils.logging import setup_logging, get_logger
-from .utils.metrics import calculate_accuracy, calculate_wer, calculate_bleu
+from .data.utils import AudioProcessor, LabelManager, FileUtils
 
 # 定义公共API
 __all__ = [
@@ -54,20 +51,11 @@ __all__ = [
     
     # 推理
     "DualInputSpeechRecognizer",
-    "DecoderStrategy",
-    "GreedyDecoder",
-    "BeamSearchDecoder", 
-    "SamplingDecoder",
     
     # 工具
     "AudioProcessor",
     "LabelManager",
     "FileUtils",
-    "setup_logging",
-    "get_logger",
-    "calculate_accuracy",
-    "calculate_wer",
-    "calculate_bleu",
     
     # 元数据
     "__version__",

@@ -1,0 +1,36 @@
+# 默认配置
+experiment_name: "default_experiment"
+batch_size: 4
+learning_rate: 0.001
+weight_decay: 0.0001
+grad_clip: 1.0
+num_epochs: 100
+save_every: 10
+hidden_dim: 256
+encoder_layers: 4
+decoder_layers: 4
+dropout: 0.1
+max_patience: 20
+label_smoothing: 0.1
+
+# 数据配置
+audio_dir: "data/audio"
+labels_file: "data/labels.csv"
+device: "auto"  # auto, cpu, cuda
+num_workers: 0
+pin_memory: true
+shuffle: true
+validation_split: 0.2
+random_seed: 42
+
+# 日志配置
+log_level: "INFO"
+tensorboard_log_dir: "experiments/runs"
+checkpoint_dir: "experiments/checkpoints"
+log_dir: "experiments/logs"
+
+# 音频处理配置
+sample_rate: 48000
+n_fft: 1024
+hop_length: 512
+max_length: 200

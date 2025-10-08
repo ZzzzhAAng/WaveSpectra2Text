@@ -16,9 +16,8 @@ from datetime import datetime
 import hashlib
 import argparse
 
-from vocab import vocab
-from audio_preprocess import PreprocessorFactory, OfflinePreprocessor
-from common_utils import LabelManager, AudioProcessor, FileUtils
+from wavespectra2text.core.vocab import vocab
+from wavespectra2text.data.preprocessing import PreprocessorFactory, OfflinePreprocessor
 
 
 class AutoUpdateSystem:
@@ -28,7 +27,7 @@ class AutoUpdateSystem:
                  audio_dir: str = 'data/audio',
                  labels_file: str = 'data/labels.csv',
                  features_dir: str = 'data/features',
-                 vocab_file: str = 'vocab.py',
+                 vocab_file: str = 'src/wavespectra2text/core/vocab.py',
                  config_dir: str = '.',
                  log_file: str = 'auto_update.log'):
         """

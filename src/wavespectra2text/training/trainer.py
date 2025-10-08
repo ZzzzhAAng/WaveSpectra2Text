@@ -233,7 +233,7 @@ class BaseTrainer(ABC):
             
             # 记录损失
             self.train_losses.append(train_loss)
-            self.val_losses.append(val_acc)
+            self.val_losses.append(val_loss)
             
             # 记录到tensorboard
             self.writer.add_scalar('Epoch/Train_Loss', train_loss, epoch)
@@ -373,11 +373,21 @@ def create_dataloader_from_df(df, audio_dir: str, batch_size: int, shuffle: bool
         temp_labels_file = f.name
     
     try:
-        dataloader = get_dataloader(
-            audio_dir=audio_dir,
+        # 创建数据集
+        dataset = AudioDataset(
             labels_file=temp_labels_file,
+            audio_dir=audio_dir,
+            mode='realtime'
+        )
+        
+        # 创建数据加载器
+        from torch.utils.data import DataLoader
+        dataloader = DataLoader(
+            dataset,
             batch_size=batch_size,
-            shuffle=shuffle
+            shuffle=shuffle,
+            num_workers=0,
+            pin_memory=False
         )
         return dataloader
     finally:
@@ -389,7 +399,7 @@ def create_dataloader_from_df(df, audio_dir: str, batch_size: int, shuffle: bool
 def get_default_config(scale: str) -> Dict[str, Any]:
     """获取不同规模的默认配置"""
     configs = {
-        'scale_1': {
+        'small': {
             'experiment_name': f'small_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 1,
             'learning_rate': 1e-5,
@@ -402,9 +412,20 @@ def get_default_config(scale: str) -> Dict[str, Any]:
             'decoder_layers': 1,
             'dropout': 0.5,
             'max_patience': 15,
-            'label_smoothing': 0.1
+            'label_smoothing': 0.1,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         },
-        'scale_2': {
+        'medium': {
             'experiment_name': f'medium_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 2,
             'learning_rate': 5e-5,
@@ -417,9 +438,20 @@ def get_default_config(scale: str) -> Dict[str, Any]:
             'decoder_layers': 2,
             'dropout': 0.3,
             'max_patience': 20,
-            'label_smoothing': 0.1
+            'label_smoothing': 0.1,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         },
-        'scale_3': {
+        'large': {
             'experiment_name': f'large_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 4,
             'learning_rate': 1e-4,
@@ -432,9 +464,20 @@ def get_default_config(scale: str) -> Dict[str, Any]:
             'decoder_layers': 4,
             'dropout': 0.2,
             'max_patience': 25,
-            'label_smoothing': 0.1
+            'label_smoothing': 0.1,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         },
-        'scale_4': {
+        'xlarge': {
             'experiment_name': f'xlarge_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 8,
             'learning_rate': 2e-4,
@@ -447,11 +490,22 @@ def get_default_config(scale: str) -> Dict[str, Any]:
             'decoder_layers': 6,
             'dropout': 0.1,
             'max_patience': 30,
-            'label_smoothing': 0.1
+            'label_smoothing': 0.1,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         }
     }
     
-    return configs.get(scale, configs['scale_1'])
+    return configs.get(scale, configs['small'])
 
 
 if __name__ == "__main__":

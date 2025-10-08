@@ -8,10 +8,6 @@
 import sys
 import os
 import argparse
-from pathlib import Path
-
-# 添加src目录到Python路径
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from wavespectra2text.inference.recognizer import DualInputSpeechRecognizer
 
@@ -114,10 +110,19 @@ def main():
         # 显示结果
         if result['success']:
             print(f"\n🎯 识别结果: '{result['text']}'")
-            print(f"⏱️  总耗时: {result['total_time']:.3f}秒")
-            print(f"📊 使用模式: {result['mode']}")
+            
+            # 兼容不同的时间格式
+            if 'total_time' in result:
+                total_time = result['total_time']
+            elif 'processing_time' in result and 'total' in result['processing_time']:
+                total_time = result['processing_time']['total']
+            else:
+                total_time = 0.0
+                
+            print(f"⏱️  总耗时: {total_time:.3f}秒")
+            print(f"📊 使用模式: {result.get('mode', 'unknown')}")
         else:
-            print(f"\n❌ 识别失败: {result['error']}")
+            print(f"\n❌ 识别失败: {result.get('error', '未知错误')}")
 
     except Exception as e:
         print(f"❌ 系统错误: {e}")

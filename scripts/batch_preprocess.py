@@ -13,7 +13,7 @@ from tqdm import tqdm
 import json
 import traceback
 
-from audio_preprocess import PreprocessorFactory, OfflinePreprocessor
+from wavespectra2text.data.preprocessing import PreprocessorFactory, OfflinePreprocessor
 
 
 class BatchPreprocessorFixed:

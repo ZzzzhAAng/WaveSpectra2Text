@@ -1,0 +1,36 @@
+# 超大数据集配置
+experiment_name: "xlarge_dataset"
+batch_size: 8
+learning_rate: 0.0002
+weight_decay: 0.000001
+grad_clip: 1.0
+num_epochs: 200
+save_every: 20
+hidden_dim: 512
+encoder_layers: 6
+decoder_layers: 6
+dropout: 0.1
+max_patience: 30
+label_smoothing: 0.1
+validation_split: 0.1
+
+# 数据配置
+audio_dir: "data/audio"
+labels_file: "data/labels.csv"
+device: "auto"
+num_workers: 0
+pin_memory: true
+shuffle: true
+random_seed: 42
+
+# 日志配置
+log_level: "INFO"
+tensorboard_log_dir: "experiments/runs"
+checkpoint_dir: "experiments/checkpoints"
+log_dir: "experiments/logs"
+
+# 音频处理配置
+sample_rate: 48000
+n_fft: 1024
+hop_length: 512
+max_length: 200

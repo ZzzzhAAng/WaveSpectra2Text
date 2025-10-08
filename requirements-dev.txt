@@ -1,9 +1,0 @@
-# 开发依赖
-pytest>=6.0
-pytest-cov>=2.0
-black>=21.0
-flake8>=3.8
-mypy>=0.800
-pre-commit>=2.0
-jupyter>=1.0
-ipykernel>=6.0

@@ -8,17 +8,12 @@
 import sys
 import os
 import argparse
-from pathlib import Path
-
-# 添加src目录到Python路径
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from wavespectra2text.training.config import ConfigManager, get_default_config
 from wavespectra2text.training.trainer import create_trainer
 from wavespectra2text.core.model import create_model
 from wavespectra2text.core.vocab import vocab
 from wavespectra2text.data.dataset import AudioDataset
-from wavespectra2text.data.utils import AudioProcessor
 from wavespectra2text.training.callbacks import CallbackList, EarlyStoppingCallback, CheckpointCallback, LoggingCallback, TensorBoardCallback
 
 
@@ -76,11 +71,12 @@ def main():
         # 分割数据集
         if config['validation_split'] > 0:
             from sklearn.model_selection import train_test_split
+            
+            # 简化数据集分割逻辑
             train_indices, val_indices = train_test_split(
                 range(len(dataset)),
                 test_size=config['validation_split'],
-                random_state=config['random_seed'],
-                stratify=[dataset[i]['label'].item() for i in range(len(dataset))]
+                random_state=config['random_seed']
             )
             
             from torch.utils.data import Subset
@@ -92,7 +88,9 @@ def main():
         
         # 创建数据加载器
         from torch.utils.data import DataLoader
-        train_loader = DataLoader(
+        from wavespectra2text.data.dataset import FlexibleDataLoader
+        
+        train_loader = FlexibleDataLoader.create_dataloader(
             train_dataset,
             batch_size=config['batch_size'],
             shuffle=config['shuffle'],
@@ -100,7 +98,7 @@ def main():
             pin_memory=config['pin_memory']
         )
         
-        val_loader = DataLoader(
+        val_loader = FlexibleDataLoader.create_dataloader(
             val_dataset,
             batch_size=config['batch_size'],
             shuffle=False,
@@ -123,7 +121,16 @@ def main():
         print(f"模型大小: {sum(p.numel() for p in model.parameters())} 参数")
         
         # 创建训练器
-        trainer = create_trainer(args.scale, model, train_loader, val_loader, device, config)
+        # 将scale参数映射到训练器类型
+        scale_to_trainer = {
+            'small': 'simple',
+            'medium': 'improved', 
+            'large': 'large',
+            'xlarge': 'large'  # 超大数据集也使用large训练器
+        }
+        trainer_type = scale_to_trainer.get(args.scale, 'simple')
+        print(f"🎯 使用训练器: {trainer_type} (对应数据集规模: {args.scale})")
+        trainer = create_trainer(trainer_type, model, train_loader, val_loader, device, config)
         
         # 设置回调
         callbacks = CallbackList([

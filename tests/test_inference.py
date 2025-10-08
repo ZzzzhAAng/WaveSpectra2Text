@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 推理模块测试
-测试识别器和解码策略功能
+测试识别器功能
 """
 
 import sys
@@ -18,66 +18,8 @@ import shutil
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from wavespectra2text.inference.recognizer import DualInputSpeechRecognizer
-from wavespectra2text.inference.strategies import (
-    DecoderStrategy, GreedyDecoder, BeamSearchDecoder, SamplingDecoder
-)
 from wavespectra2text.core.model import create_model
 from wavespectra2text.core.vocab import vocab
-
-
-class TestDecoderStrategies(unittest.TestCase):
-    """测试解码策略"""
-    
-    def setUp(self):
-        self.device = torch.device('cpu')
-        self.batch_size = 2
-        self.seq_len = 50
-        self.vocab_size = vocab.vocab_size
-        
-        # 创建模拟logits
-        self.logits = torch.randn(self.batch_size, self.seq_len, self.vocab_size)
-    
-    def test_greedy_decoder(self):
-        """测试贪婪解码器"""
-        decoder = GreedyDecoder()
-        results = decoder.decode(self.logits, vocab)
-        
-        self.assertEqual(len(results), self.batch_size)
-        self.assertIsInstance(results[0], str)
-        self.assertIsInstance(results[1], str)
-    
-    def test_beam_search_decoder(self):
-        """测试束搜索解码器"""
-        decoder = BeamSearchDecoder(beam_size=3, max_length=30)
-        results = decoder.decode(self.logits, vocab)
-        
-        self.assertEqual(len(results), self.batch_size)
-        self.assertIsInstance(results[0], str)
-        self.assertIsInstance(results[1], str)
-    
-    def test_sampling_decoder(self):
-        """测试采样解码器"""
-        decoder = SamplingDecoder(temperature=1.0, top_k=10)
-        results = decoder.decode(self.logits, vocab)
-        
-        self.assertEqual(len(results), self.batch_size)
-        self.assertIsInstance(results[0], str)
-        self.assertIsInstance(results[1], str)
-    
-    def test_decoder_strategy_interface(self):
-        """测试解码策略接口"""
-        # 测试所有解码器都实现了DecoderStrategy接口
-        decoders = [
-            GreedyDecoder(),
-            BeamSearchDecoder(),
-            SamplingDecoder()
-        ]
-        
-        for decoder in decoders:
-            self.assertIsInstance(decoder, DecoderStrategy)
-            results = decoder.decode(self.logits, vocab)
-            self.assertIsInstance(results, list)
-            self.assertEqual(len(results), self.batch_size)
 
 
 class TestDualInputRecognizer(unittest.TestCase):

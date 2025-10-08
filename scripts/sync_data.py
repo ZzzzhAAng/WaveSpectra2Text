@@ -95,7 +95,7 @@ def main():
 
         print(f"\n💡 提示:")
         print(f"  - 现在可以使用预计算模式训练，速度更快")
-        print(f"  - 运行训练: python train_at_different_scales/train_scale_1.py")
+        print(f"  - 运行训练: python scripts/train.py --scale small")
         print(f"  - 运行推理: python dual_input_inference.py --model <model_path> --input <input_file>")
 
     except Exception as e:

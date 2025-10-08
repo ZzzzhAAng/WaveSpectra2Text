@@ -7,6 +7,16 @@
 
 现在以中文数字1～10为例，展示了从频谱特征到文本的端到端识别能力。
 
+## ✨ 主要特性
+
+- 🎯 **双输入模式**: 支持原始音频和预处理频谱两种输入方式
+- 🚀 **高性能推理**: 频谱输入模式可提升推理速度5-10倍
+- 🧠 **Transformer架构**: 基于编码器-解码器的现代深度学习模型
+- 📊 **统一训练系统**: 支持small/medium/large/xlarge四种规模训练
+- 🔧 **模块化设计**: 低耦合、高扩展性的代码架构
+- 📈 **智能推理**: 贪婪解码 + 束搜索 + 智能回退机制
+- 🎵 **专业音频处理**: 基于librosa的高质量频谱提取
+
 ## 🏗️ 项目架构
 
 ```
@@ -88,56 +98,58 @@ WaveSpectra2Text/
 │       │   └── 📄 callbacks.py     # 训练回调
 │       ├── 📁 inference/             # 推理模块
 │       │   ├── 📄 __init__.py
-│       │   ├── 📄 recognizer.py     # 识别器
-│       │   └── 📄 strategies.py     # 解码策略
+│       │   └── 📄 recognizer.py     # 识别器
 │       └── 📁 utils/                 # 工具模块
 │           ├── 📄 __init__.py
-│           ├── 📄 audio.py          # 音频工具
-│           ├── 📄 logging.py        # 日志工具
-│           └── 📄 metrics.py       # 评估指标
+│           └── (已简化，只保留核心工具)
 │
 ├── 📁 scripts/                       # 脚本目录
-│   ├── 📄 train.py                  # 训练脚本
-│   ├── 📄 inference.py             # 推理脚本
-│   ├── 📄 preprocess.py            # 预处理脚本
-│   └── 📄 evaluate.py              # 评估脚本
+│   ├── 📄 train.py                  # 统一训练脚本
+│   ├── 📄 inference.py             # 统一推理脚本
+│   ├── 📄 batch_preprocess.py      # 批量预处理脚本
+│   ├── 📄 setup_data.py            # 数据设置脚本
+│   ├── 📄 sync_data.py             # 数据同步脚本
+│   └── 📄 auto_update_system.py    # 自动更新系统
 │
 ├── 📁 configs/                      # 配置文件目录
 │   ├── 📄 default.yaml             # 默认配置
 │   ├── 📄 small_dataset.yaml       # 小数据集配置
 │   ├── 📄 medium_dataset.yaml      # 中等数据集配置
-│   └── 📄 large_dataset.yaml       # 大数据集配置
+│   ├── 📄 large_dataset.yaml       # 大数据集配置
+│   └── 📄 xlarge_dataset.yaml      # 超大数据集配置
 │
 ├── 📁 data/                         # 数据目录
 │   ├── 📁 audio/                     # 原始音频文件
 │   │   ├── Chinese_Number_01.wav     # 中文数字音频样本
 │   │   └── ...
 │   ├── 📁 features/                 # 特征文件
+│   │   ├── Chinese_Number_01.npy     # 预处理频谱特征
+│   │   ├── spectrum_index.csv       # 特征索引文件
+│   │   └── ...
 │   └── 📄 labels.csv                 # 标签文件
 │
-├── 📁 experiments/                  # 实验目录
-│   ├── 📁 runs/                     # 训练运行记录
-│   ├── 📁 logs/                     # 日志文件
-│   └── 📁 checkpoints/              # 模型检查点
+├── 📁 runs/                         # 训练运行记录
+│   └── 📁 small_dataset/            # TensorBoard日志
+│
+├── 📁 checkpoints/                  # 模型检查点
+│   ├── 📄 best_model.pth           # 最佳模型
+│   └── 📄 checkpoint_epoch_*.pth   # 定期检查点
 │
 ├── 📁 tests/                        # 测试目录
-│   ├── 📄 __init__.py
-│   ├── 📄 test_model.py            # 模型测试
-│   ├── 📄 test_data.py             # 数据测试
-│   ├── 📄 test_training.py         # 训练测试
-│   └── 📄 test_inference.py        # 推理测试
+│   ├── 📄 test_core.py             # 核心模块测试
+│   ├── 📄 test_data.py             # 数据模块测试
+│   ├── 📄 test_training.py         # 训练模块测试
+│   └── 📄 test_inference.py        # 推理模块测试
 │
 ├── 📁 examples/                     # 示例目录
-│   ├── 📄 basic_usage.py           # 基本使用示例
-│   ├── 📄 custom_training.py       # 自定义训练示例
-│   └── 📄 batch_inference.py      # 批量推理示例
+│   └── 📄 basic_usage.py           # 基本使用示例
 │
-├── 📄 setup.py                     # 安装脚本
+├── 📁 docs/                         # 文档目录
+│   └── 📄 training_scales.md       # 训练规模说明
+│
 ├── 📄 pyproject.toml              # 项目配置
 ├── 📄 requirements.txt             # 依赖列表
-├── 📄 requirements-dev.txt         # 开发依赖
-├── 📄 .gitignore                   # Git忽略文件
-└── 📄 LICENSE                      # 许可证
+└── 📄 README.md                    # 项目说明
 ```
 
 ## 🚀 快速开始
@@ -172,25 +184,39 @@ pip install -r requirements.txt
 #### 1. 准备数据
 ```bash
 # 自动扫描音频文件并创建标签模板
-python setup_data.py
+python scripts/setup_data.py
 ```
 
 #### 2. 训练模型
 ```bash
-# 使用统一训练脚本
-python scripts/train.py --scale small --config configs/small_dataset.yaml
+# 使用统一训练脚本 - 支持四种规模
+python scripts/train.py --scale small    # 小数据集
+python scripts/train.py --scale medium   # 中等数据集
+python scripts/train.py --scale large    # 大数据集
+python scripts/train.py --scale xlarge   # 超大数据集
 
-# 或者使用命令行工具（安装后）
-wavespectra2text-train --scale medium
+# 使用配置文件
+python scripts/train.py --config configs/small_dataset.yaml
+
+# 从检查点恢复训练
+python scripts/train.py --scale medium --resume checkpoints/checkpoint_epoch_50.pth
 ```
 
 #### 3. 推理识别
 ```bash
 # 使用统一推理脚本
-python scripts/inference.py --model experiments/checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav
+python scripts/inference.py --model checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav
 
-# 或者使用命令行工具（安装后）
-wavespectra2text-inference --model experiments/checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav
+# 自动模式 - 根据文件扩展名自动选择输入模式
+python scripts/inference.py --model checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav --mode auto
+
+# 指定输入模式
+python scripts/inference.py --model checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav --mode audio
+python scripts/inference.py --model checkpoints/best_model.pth --input data/features/Chinese_Number_01.npy --mode spectrogram
+
+# 查看性能对比和演示代码
+python scripts/inference.py --compare
+python scripts/inference.py --demo
 ```
 
 #### 4. 编程接口
@@ -198,7 +224,7 @@ wavespectra2text-inference --model experiments/checkpoints/best_model.pth --inpu
 from wavespectra2text import DualInputSpeechRecognizer, create_model, vocab
 
 # 创建识别器
-recognizer = DualInputSpeechRecognizer('experiments/checkpoints/best_model.pth')
+recognizer = DualInputSpeechRecognizer('checkpoints/best_model.pth')
 
 # 音频识别
 result = recognizer.recognize_from_audio('data/audio/Chinese_Number_01.wav')
@@ -207,6 +233,10 @@ print(f"识别结果: {result['text']}")
 # 频谱识别（更快）
 result = recognizer.recognize_from_spectrogram('data/features/Chinese_Number_01.npy')
 print(f"识别结果: {result['text']}")
+
+# 自动模式
+result = recognizer.auto_recognize('data/audio/Chinese_Number_01.wav')  # 音频文件
+result = recognizer.auto_recognize('data/features/Chinese_Number_01.npy')  # 频谱文件
 ```
 
 ## 数据准备
@@ -247,17 +277,14 @@ audio_3.wav,label_3
 ### 使用统一训练脚本（推荐）
 
 ```bash
-# 小数据集训练
-python scripts/train.py --scale small
-
-# 中等数据集训练
-python scripts/train.py --scale medium --config configs/medium_dataset.yaml
-
-# 大数据集训练
-python scripts/train.py --scale large --config configs/large_dataset.yaml
+# 四种规模训练
+python scripts/train.py --scale small    # 小数据集 (1-50样本)
+python scripts/train.py --scale medium   # 中等数据集 (50-200样本)
+python scripts/train.py --scale large    # 大数据集 (200-1000样本)
+python scripts/train.py --scale xlarge   # 超大数据集 (1000+样本)
 
 # 从检查点恢复训练
-python scripts/train.py --scale medium --resume experiments/checkpoints/checkpoint_epoch_50.pth
+python scripts/train.py --scale medium --resume checkpoints/checkpoint_epoch_50.pth
 ```
 
 ### 使用配置文件
@@ -265,9 +292,9 @@ python scripts/train.py --scale medium --resume experiments/checkpoints/checkpoi
 ```bash
 # 使用YAML配置文件
 python scripts/train.py --config configs/small_dataset.yaml
-
-# 使用JSON配置文件（兼容旧版本）
-python scripts/train.py --config config.json
+python scripts/train.py --config configs/medium_dataset.yaml
+python scripts/train.py --config configs/large_dataset.yaml
+python scripts/train.py --config configs/xlarge_dataset.yaml
 ```
 
 ### 编程接口训练
@@ -297,7 +324,7 @@ model = create_model(
 )
 
 # 创建训练器
-trainer = create_trainer('medium', model, train_loader, val_loader, device, config)
+trainer = create_trainer('improved', model, train_loader, val_loader, device, config)
 
 # 开始训练
 trainer.train(config['num_epochs'])
@@ -309,11 +336,11 @@ trainer.train(config['num_epochs'])
 
 ```bash
 # 自动模式 - 根据文件扩展名自动选择输入模式
-python scripts/inference.py --model experiments/checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav
+python scripts/inference.py --model checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav
 
 # 指定输入模式
-python scripts/inference.py --model experiments/checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav --mode audio
-python scripts/inference.py --model experiments/checkpoints/best_model.pth --input data/features/Chinese_Number_01.npy --mode spectrogram
+python scripts/inference.py --model checkpoints/best_model.pth --input data/audio/Chinese_Number_01.wav --mode audio
+python scripts/inference.py --model checkpoints/best_model.pth --input data/features/Chinese_Number_01.npy --mode spectrogram
 
 # 查看性能对比和演示代码
 python scripts/inference.py --compare
@@ -326,7 +353,7 @@ python scripts/inference.py --demo
 from wavespectra2text import DualInputSpeechRecognizer
 
 # 创建识别器
-recognizer = DualInputSpeechRecognizer('experiments/checkpoints/best_model.pth')
+recognizer = DualInputSpeechRecognizer('checkpoints/best_model.pth')
 
 # 音频识别
 result = recognizer.recognize_from_audio('data/audio/Chinese_Number_01.wav')
@@ -346,49 +373,54 @@ result = recognizer.auto_recognize('data/features/Chinese_Number_01.npy')  # 频
 ### 快速开始 - 数据设置
 ```bash
 # 自动扫描音频文件并创建标签模板
-python setup_data.py
+python scripts/setup_data.py
 ```
 
 ### 批量预处理（推荐用于大数据集）
 ```bash
 # 批量预处理音频文件为频谱特征，大幅提升训练速度
-python batch_preprocess.py --audio_dir data/audio --labels_file data/labels.csv --output_dir data/features
+python scripts/batch_preprocess.py --audio_dir data/audio --labels_file data/labels.csv --output_dir data/features
 
 # 使用不同的预处理器
-python batch_preprocess.py --preprocessor mel_spectrogram --n_mels 128
+python scripts/batch_preprocess.py --preprocessor mel_spectrogram --n_mels 128
 
 # 强制重新计算所有特征
-python batch_preprocess.py --force_recompute
+python scripts/batch_preprocess.py --force_recompute
 ```
 
 ### 数据加载模式
 ```python
-from data_utils import get_dataloader
-
-# 自动模式：优先使用预计算特征，否则实时计算
-dataloader = get_dataloader(mode='auto', batch_size=4)
+from wavespectra2text.data.dataset import AudioDataset, FlexibleDataLoader
 
 # 实时模式：每次训练时计算特征
-dataloader = get_dataloader(mode='realtime', batch_size=4)
+dataset = AudioDataset(
+    labels_file='data/labels.csv',
+    audio_dir='data/audio',
+    mode='realtime'
+)
+dataloader = FlexibleDataLoader.create_dataloader(dataset, batch_size=4)
 
 # 预计算模式：使用预处理好的特征（最快）
-dataloader = get_dataloader(mode='precomputed', precomputed_dir='data/features')
+dataset = AudioDataset(
+    labels_file='data/labels.csv',
+    precomputed_dir='data/features',
+    mode='precomputed'
+)
+dataloader = FlexibleDataLoader.create_dataloader(dataset, batch_size=4)
 ```
 
 ## ⚙️ 配置参数
 
-### 训练配置 (config.json)
-```json
-{
-  "batch_size": 1,           // 批大小（小数据集推荐1）
-  "learning_rate": 0.00005,  // 学习率
-  "hidden_dim": 32,          // 隐藏层维度（小数据集推荐32）
-  "encoder_layers": 2,       // 编码器层数
-  "decoder_layers": 2,       // 解码器层数
-  "dropout": 0.1,            // Dropout比率
-  "num_epochs": 200          // 训练轮数
-}
-```
+### 训练规模配置
+
+项目支持四种训练规模，每种规模都有对应的配置文件：
+
+| 规模 | 样本数 | 配置文件 | Batch Size | Learning Rate | Hidden Dim | Layers |
+|------|--------|----------|------------|---------------|------------|--------|
+| **small** | 1-50 | `configs/small_dataset.yaml` | 1 | 1e-5 | 64 | 1+1 |
+| **medium** | 50-200 | `configs/medium_dataset.yaml` | 2 | 5e-5 | 128 | 2+2 |
+| **large** | 200-1000 | `configs/large_dataset.yaml` | 4 | 1e-4 | 256 | 4+4 |
+| **xlarge** | 1000+ | `configs/xlarge_dataset.yaml` | 8 | 2e-4 | 512 | 6+6 |
 
 ### 音频预处理参数
 - `sample_rate`: 采样率 (默认: 48000Hz)
@@ -419,8 +451,9 @@ dataloader = get_dataloader(mode='precomputed', precomputed_dir='data/features')
 2. **统一接口**: 统一的训练基类和推理核心
 3. **缓存系统**: 支持特征缓存，避免重复计算
 4. **批量处理**: 高效的批量预处理和推理
-5. **配置管理**: JSON配置文件，支持不同规模训练
+5. **配置管理**: YAML配置文件，支持四种规模训练
 6. **错误处理**: 完善的异常处理和错误恢复机制
+7. **自动更新**: 数据变化自动同步相关文件
 
 ## 监控训练
 
@@ -438,7 +471,7 @@ tensorboard --logdir runs
 ```bash
 # 问题：音频文件不存在或路径错误
 # 解决：运行数据验证工具
-python setup_data.py
+python scripts/setup_data.py
 
 # 问题：标签文件格式错误
 # 解决：检查CSV文件格式，确保包含filename和label列
@@ -464,7 +497,7 @@ pip install librosa soundfile
 
 # 问题：训练速度慢
 # 解决：使用预计算模式
-python batch_preprocess.py --audio_dir data/audio --labels_file data/labels.csv
+python scripts/batch_preprocess.py --audio_dir data/audio --labels_file data/labels.csv
 ```
 
 ### 🚀 性能优化建议
@@ -488,9 +521,11 @@ python batch_preprocess.py --audio_dir data/audio --labels_file data/labels.csv
 - ✅ **智能推理**: 贪婪解码 + 束搜索 + 回退机制
 - ✅ **批量处理**: 高效的批量预处理和推理
 - ✅ **缓存系统**: 特征缓存和配置管理
-- ✅ **统一训练基类**: 减少代码冗余，支持多种规模训练
+- ✅ **统一训练基类**: 减少代码冗余，支持四种规模训练
 - ✅ **模块化设计**: 低耦合、高扩展性的架构
 - ✅ **自动数据更新**: 数据变化自动同步
+- ✅ **配置管理**: 支持YAML配置文件
+- ✅ **训练规模**: 支持small/medium/large/xlarge四种规模
 
 ### 可扩展方向
 - 🔄 **更多中文词汇**: 扩展词汇表支持更多汉字

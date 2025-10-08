@@ -1,0 +1,36 @@
+# 小数据集配置
+experiment_name: "small_dataset"
+batch_size: 1
+learning_rate: 0.00001
+weight_decay: 0.001
+grad_clip: 0.1
+num_epochs: 30
+save_every: 10
+hidden_dim: 64
+encoder_layers: 1
+decoder_layers: 1
+dropout: 0.5
+max_patience: 15
+label_smoothing: 0.1
+validation_split: 0.0  # 小数据集不分割
+
+# 数据配置
+audio_dir: "data/audio"
+labels_file: "data/labels.csv"
+device: "auto"
+num_workers: 0
+pin_memory: true
+shuffle: true
+random_seed: 42
+
+# 日志配置
+log_level: "INFO"
+tensorboard_log_dir: "experiments/runs"
+checkpoint_dir: "experiments/checkpoints"
+log_dir: "experiments/logs"
+
+# 音频处理配置
+sample_rate: 48000
+n_fft: 1024
+hop_length: 512
+max_length: 200
