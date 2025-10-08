@@ -12,9 +12,9 @@ import numpy as np
 from typing import Dict, Tuple, Optional, Union
 from pathlib import Path
 
-from model import create_model
-from vocab import vocab
-from common_utils import AudioProcessor
+from .model import create_model
+from .vocab import vocab
+from ..data.utils import AudioProcessor
 
 
 class InferenceCore:

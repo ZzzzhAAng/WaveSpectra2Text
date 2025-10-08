@@ -208,9 +208,13 @@ class Seq2SeqModel(nn.Module):
         return self.decoder(tgt_tokens, encoder_output, tgt_mask, memory_mask)
 
 
-def create_model(vocab_size, input_dim=513, hidden_dim=256,
-                 encoder_layers=4, decoder_layers=4, dropout=0.1):
+def create_model(vocab_size=None, input_dim=513, hidden_dim=256,
+                 encoder_layers=4, decoder_layers=4, dropout=0.1, device='cpu'):
     """创建模型实例"""
+    if vocab_size is None:
+        from .vocab import vocab
+        vocab_size = vocab.vocab_size
+    
     model = Seq2SeqModel(
         vocab_size=vocab_size,
         input_dim=input_dim,
@@ -219,6 +223,10 @@ def create_model(vocab_size, input_dim=513, hidden_dim=256,
         decoder_layers=decoder_layers,
         dropout=dropout
     )
+    
+    # 移动到指定设备
+    model = model.to(device)
+    model.device = device
 
     # 初始化参数
     for p in model.parameters():

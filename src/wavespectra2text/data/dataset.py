@@ -14,8 +14,8 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 import json
 
-from audio_preprocess import AudioPreprocessor, PreprocessorFactory, OfflinePreprocessor
-from vocab import vocab
+from .preprocessing import AudioPreprocessor, PreprocessorFactory, OfflinePreprocessor
+from ..core.vocab import vocab
 
 
 class AudioDataset(Dataset):

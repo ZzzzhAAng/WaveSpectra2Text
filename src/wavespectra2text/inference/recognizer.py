@@ -14,10 +14,10 @@ from pathlib import Path
 import time
 import json
 
-from model import create_model
-from vocab import vocab
-from audio_preprocess import SpectrogramPreprocessor
-from inference_core import InferenceCore, BatchInference
+from ..core.model import create_model
+from ..core.vocab import vocab
+from ..data.preprocessing import SpectrogramPreprocessor
+from ..core.inference import InferenceCore, BatchInference
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -312,8 +312,8 @@ def compare_input_modes():
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(description='双输入模式语音识别')
-    parser.add_argument('--model', type=str, required=True, help='模型路径')
-    parser.add_argument('--input', type=str, required=True, help='输入文件 (音频或频谱)')
+    parser.add_argument('--model', type=str, help='模型路径')
+    parser.add_argument('--input', type=str, help='输入文件 (音频或频谱)')
     parser.add_argument('--mode', type=str, default='auto',
                         choices=['auto', 'audio', 'spectrogram'],
                         help='输入模式')
@@ -330,6 +330,10 @@ def main():
     if args.compare:
         compare_input_modes()
         return
+
+    # 检查必需参数
+    if not args.model or not args.input:
+        parser.error("--model 和 --input 参数是必需的")
 
     print("🎯 双输入模式语音识别系统")
     print("=" * 60)
