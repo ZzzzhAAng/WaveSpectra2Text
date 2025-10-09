@@ -9,6 +9,7 @@ import os
 import yaml
 from typing import Dict, Any, Optional
 from pathlib import Path
+from datetime import datetime
 
 
 class ConfigManager:
@@ -151,7 +152,7 @@ def get_default_config(scale: str = 'medium') -> Dict[str, Any]:
     """
     configs = {
         'small': {
-            'experiment_name': 'small_dataset',
+            'experiment_name': f'small_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 1,
             'learning_rate': 1e-5,
             'weight_decay': 1e-3,
@@ -164,10 +165,20 @@ def get_default_config(scale: str = 'medium') -> Dict[str, Any]:
             'dropout': 0.5,
             'max_patience': 15,
             'label_smoothing': 0.1,
-            'validation_split': 0.0,  # 小数据集不分割
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         },
         'medium': {
-            'experiment_name': 'medium_dataset',
+            'experiment_name': f'medium_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 2,
             'learning_rate': 5e-5,
             'weight_decay': 1e-4,
@@ -180,10 +191,20 @@ def get_default_config(scale: str = 'medium') -> Dict[str, Any]:
             'dropout': 0.3,
             'max_patience': 20,
             'label_smoothing': 0.1,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
             'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         },
         'large': {
-            'experiment_name': 'large_dataset',
+            'experiment_name': f'large_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 4,
             'learning_rate': 1e-4,
             'weight_decay': 1e-5,
@@ -196,10 +217,20 @@ def get_default_config(scale: str = 'medium') -> Dict[str, Any]:
             'dropout': 0.2,
             'max_patience': 25,
             'label_smoothing': 0.1,
-            'validation_split': 0.15,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         },
         'xlarge': {
-            'experiment_name': 'xlarge_dataset',
+            'experiment_name': f'xlarge_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
             'batch_size': 8,
             'learning_rate': 2e-4,
             'weight_decay': 1e-6,
@@ -212,7 +243,17 @@ def get_default_config(scale: str = 'medium') -> Dict[str, Any]:
             'dropout': 0.1,
             'max_patience': 30,
             'label_smoothing': 0.1,
-            'validation_split': 0.1,
+            'device': 'auto',
+            'checkpoint_dir': 'checkpoints',
+            'log_dir': 'logs',
+            'tensorboard_log_dir': 'runs',
+            'labels_file': 'data/labels.csv',
+            'audio_dir': 'data/audio',
+            'validation_split': 0.2,
+            'random_seed': 42,
+            'shuffle': True,
+            'num_workers': 0,
+            'pin_memory': False
         }
     }
     

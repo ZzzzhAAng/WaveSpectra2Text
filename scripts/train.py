@@ -36,10 +36,6 @@ def main():
     else:
         config = get_default_config(args.scale)
     
-    # 设置设备
-    if args.device != 'auto':
-        config['device'] = args.device
-    
     print(f"🎯 WaveSpectra2Text 训练脚本")
     print(f"📊 数据集规模: {args.scale}")
     print(f"🔧 配置文件: {args.config or '默认配置'}")
@@ -47,6 +43,9 @@ def main():
     print("=" * 60)
     
     # 设置设备
+    if args.device != 'auto':
+        config['device'] = args.device
+    
     import torch
     if config['device'] == 'auto':
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

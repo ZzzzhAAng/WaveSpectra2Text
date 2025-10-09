@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Tuple
 
 from ..core.model import create_model
+from .config import get_default_config
 from ..core.vocab import vocab
 from ..data.dataset import AudioDataset
 
@@ -394,118 +395,6 @@ def create_dataloader_from_df(df, audio_dir: str, batch_size: int, shuffle: bool
         # 清理临时文件
         if os.path.exists(temp_labels_file):
             os.remove(temp_labels_file)
-
-
-def get_default_config(scale: str) -> Dict[str, Any]:
-    """获取不同规模的默认配置"""
-    configs = {
-        'small': {
-            'experiment_name': f'small_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-            'batch_size': 1,
-            'learning_rate': 1e-5,
-            'weight_decay': 1e-3,
-            'grad_clip': 0.1,
-            'num_epochs': 30,
-            'save_every': 10,
-            'hidden_dim': 64,
-            'encoder_layers': 1,
-            'decoder_layers': 1,
-            'dropout': 0.5,
-            'max_patience': 15,
-            'label_smoothing': 0.1,
-            'device': 'auto',
-            'checkpoint_dir': 'checkpoints',
-            'log_dir': 'logs',
-            'tensorboard_log_dir': 'runs',
-            'labels_file': 'data/labels.csv',
-            'audio_dir': 'data/audio',
-            'validation_split': 0.2,
-            'random_seed': 42,
-            'shuffle': True,
-            'num_workers': 0,
-            'pin_memory': False
-        },
-        'medium': {
-            'experiment_name': f'medium_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-            'batch_size': 2,
-            'learning_rate': 5e-5,
-            'weight_decay': 1e-4,
-            'grad_clip': 0.5,
-            'num_epochs': 50,
-            'save_every': 10,
-            'hidden_dim': 128,
-            'encoder_layers': 2,
-            'decoder_layers': 2,
-            'dropout': 0.3,
-            'max_patience': 20,
-            'label_smoothing': 0.1,
-            'device': 'auto',
-            'checkpoint_dir': 'checkpoints',
-            'log_dir': 'logs',
-            'tensorboard_log_dir': 'runs',
-            'labels_file': 'data/labels.csv',
-            'audio_dir': 'data/audio',
-            'validation_split': 0.2,
-            'random_seed': 42,
-            'shuffle': True,
-            'num_workers': 0,
-            'pin_memory': False
-        },
-        'large': {
-            'experiment_name': f'large_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-            'batch_size': 4,
-            'learning_rate': 1e-4,
-            'weight_decay': 1e-5,
-            'grad_clip': 1.0,
-            'num_epochs': 100,
-            'save_every': 20,
-            'hidden_dim': 256,
-            'encoder_layers': 4,
-            'decoder_layers': 4,
-            'dropout': 0.2,
-            'max_patience': 25,
-            'label_smoothing': 0.1,
-            'device': 'auto',
-            'checkpoint_dir': 'checkpoints',
-            'log_dir': 'logs',
-            'tensorboard_log_dir': 'runs',
-            'labels_file': 'data/labels.csv',
-            'audio_dir': 'data/audio',
-            'validation_split': 0.2,
-            'random_seed': 42,
-            'shuffle': True,
-            'num_workers': 0,
-            'pin_memory': False
-        },
-        'xlarge': {
-            'experiment_name': f'xlarge_dataset_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-            'batch_size': 8,
-            'learning_rate': 2e-4,
-            'weight_decay': 1e-6,
-            'grad_clip': 1.0,
-            'num_epochs': 200,
-            'save_every': 20,
-            'hidden_dim': 512,
-            'encoder_layers': 6,
-            'decoder_layers': 6,
-            'dropout': 0.1,
-            'max_patience': 30,
-            'label_smoothing': 0.1,
-            'device': 'auto',
-            'checkpoint_dir': 'checkpoints',
-            'log_dir': 'logs',
-            'tensorboard_log_dir': 'runs',
-            'labels_file': 'data/labels.csv',
-            'audio_dir': 'data/audio',
-            'validation_split': 0.2,
-            'random_seed': 42,
-            'shuffle': True,
-            'num_workers': 0,
-            'pin_memory': False
-        }
-    }
-    
-    return configs.get(scale, configs['small'])
 
 
 if __name__ == "__main__":
